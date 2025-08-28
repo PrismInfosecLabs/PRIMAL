@@ -104,7 +104,17 @@ A comprehensive, containerized malware analysis platform built with a microservi
    nano .env
    ```
 
-3. **Start the Platform**
+3. **Add Yara Rules**
+   ```
+   Grab any rules you want from: https://github.com/InQuest/awesome-yara
+   and put them in /rules - you can have nested folders here.
+   WHen the you start primal, the orchestrator container will compile
+   thes rules, this will mean it will be slower if ou have thousands of rules.
+   Rules with issues will not cause the compilation to fail - they are handled gracefully
+   , and you can see what  they are in the docker logs.
+   ```
+   
+4. **Start the Platform**
    ```bash
    # Build and start all services
    docker-compose up -d
@@ -113,10 +123,10 @@ A comprehensive, containerized malware analysis platform built with a microservi
    docker-compose ps
    ```
 
-4. **Access the Interface**
+5. **Access the Interface**
    ```
-   🌐 Web Interface: http://localhost:8080
-   📊 Container Health: http://localhost:8080/api/containers/health
+   🌐 Web Interface: http://0.0.0.0:8080
+   📊 Container Health: http://0.0.0.0:8080/api/containers/health
    ```
 
 ## ⚙️ Configuration
