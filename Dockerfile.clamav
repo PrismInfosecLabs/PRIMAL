@@ -1,5 +1,8 @@
 FROM python:3.10-slim
 
+# Disable pip's new "externally managed environment" restriction
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 # Install ClamAV and required tools
 RUN apt-get update && apt-get install -y \
     clamav \
@@ -15,7 +18,10 @@ WORKDIR /app
 
 # Copy requirements for ClamAV service
 COPY requirements.clamav.txt .
-RUN pip install --no-cache-dir -r requirements.clamav.txt
+
+# Install Python packages with explicit pip upgrade and virtual environment bypass
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir --break-system-packages -r requirements.clamav.txt
 
 # Copy ClamAV service files
 COPY clamav_service.py .

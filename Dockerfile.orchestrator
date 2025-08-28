@@ -1,5 +1,8 @@
 FROM python:3.10-slim
 
+# Disable pip's new "externally managed environment" restriction
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libssl-dev \
@@ -31,14 +34,18 @@ RUN git clone --recursive https://github.com/VirusTotal/yara.git /tmp/yara && \
     rm -rf /tmp/yara
 
 # Create user with UID 1000 to match host user (fixes permission issues)
-RUN groupadd -g 1000 appuser && useradd -u 1000 -g 1000 -s /bin/bash -m appuser
+# Use different GID to avoid conflicts with Ubuntu 24.04 system groups
+RUN groupadd -g 1001 appuser && useradd -u 1000 -g 1001 -s /bin/bash -m appuser
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements first (for better caching)
 COPY requirements.orchestrator.txt .
-RUN pip install --no-cache-dir -r requirements.orchestrator.txt
+
+# Install Python packages with explicit pip upgrade and virtual environment bypass
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir --break-system-packages -r requirements.orchestrator.txt
 
 # Copy application files
 COPY app.py .
@@ -56,10 +63,11 @@ RUN mkdir -p uploads reports rules data logs shared-files && \
 
 # Copy simplified entrypoint that doesn't try to fix permissions
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh && \
+    chown appuser:appuser /entrypoint.sh
 
 # Switch to user with matching UID
-USER 1000:1000
+USER 1000:1001
 
 # Expose port
 EXPOSE 8080
