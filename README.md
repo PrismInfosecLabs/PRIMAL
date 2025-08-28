@@ -10,8 +10,6 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 
-# This application is currently designed to run on an Ubuntu 22.04 LTS Operating system
-
 ## 🌟 Features
 
 ### 🛡️ Multi-Engine Antivirus Scanning
@@ -84,7 +82,6 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Ubutnu 22.04 LTS**
 - **Docker & Docker Compose**: Version 20.10+ recommended
 - **8GB RAM**: Minimum for running all services
 - **10GB Disk Space**: For containers, databases, and file storage
@@ -100,6 +97,11 @@ A comprehensive, containerized malware analysis platform built with a microservi
 
 2. **Configure Environment**
    ```bash
+
+   #Install Docker and setup environment
+   chmod +x docker_setup.sh
+   ./docker_setup.sh
+
    # Copy environment template
    cp .env.example .env
    
@@ -519,7 +521,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ##To-Do
 
 - ** Containerize Yara
-- ** Add support for Ubuntu 24 LTS (changes to python environments)
 
 **⚡ PRIMAL v2.0** - Empowering security researchers with scalable, containerized malware analysis capabilities.
 
