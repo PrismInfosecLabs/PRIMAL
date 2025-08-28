@@ -10,7 +10,7 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 
-#This application is currently designed to run on an Ubuntu 22.04 LTS Operating system
+# This application is currently designed to run on an Ubuntu 22.04 LTS Operating system
 
 ## 🌟 Features
 
@@ -84,7 +84,7 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Ubutnu 22.04 LTS
+- **Ubutnu 22.04 LTS**
 - **Docker & Docker Compose**: Version 20.10+ recommended
 - **8GB RAM**: Minimum for running all services
 - **10GB Disk Space**: For containers, databases, and file storage
