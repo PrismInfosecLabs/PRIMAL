@@ -223,16 +223,16 @@
             <!-- Detailed string matches (collapsible) -->
             <div id="yara-{{ loop.index }}" style="display: none; margin: 10px 0;">
                 {% if match.strings %}
-                <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; background: #f8f9fa;">
+                <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px;">
                     <strong>Detailed String Matches:</strong>
                     {% for string in match.strings %}
                     <div style="margin: 8px 0; padding: 8px; border-left: 3px solid #007bff;">
-                        <code style="padding: 2px 4px; background: #e9ecef; border-radius: 2px;">{{ string.identifier }}</code>
+                        <code style="padding: 2px 4px; border-radius: 2px;">{{ string.identifier }}</code>
                         <small style="color: #6c757d; margin-left: 8px;">({{ string.instances|length }} instance{{ 's' if string.instances|length != 1 else '' }})</small>
                         
                         <!-- Show only first 2 instances by default -->
                         {% for instance in string.instances[:2] %}
-                        <div style="margin: 5px 0 5px 20px; font-size: 12px; padding: 4px; background: #fff; border-radius: 2px;">
+                        <div style="margin: 5px 0 5px 20px; font-size: 12px; padding: 4px; border-radius: 2px;">
                             <strong>Offset:</strong> 0x{{ "%x"|format(instance.offset) }} 
                             <strong>Length:</strong> {{ instance.length }}<br>
                             <strong>Data:</strong> 
