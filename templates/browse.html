@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>📋 Browse Analysis Results</h2>
+    <a href="/" class="btn">← Back to Upload</a>
+</div>
+
+<!-- Filters and Search -->
+<div style=" padding: 15px; border-radius: 4px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">🔍 Search and Filter</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+        <div>
+            <label for="search-input"><strong>Search:</strong></label><br>
+            <input type="text" id="search-input" placeholder="Filename or SHA256..." 
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+        </div>
+        
+        <div>
+            <label for="status-filter"><strong>Status:</strong></label><br>
+            <select id="status-filter" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="threat-filter"><strong>Threat Level:</strong></label><br>
+            <select id="threat-filter" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <option value="all">All Files</option>
+                <option value="infected">Infected Only</option>
+                <option value="clean">Clean Only</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="per-page"><strong>Per Page:</strong></label><br>
+            <select id="per-page" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        
+        <div>
+            <button onclick="loadResults()" class="btn" style="background: #007bff; width: 100%;">🔍 Search</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading indicator -->
+<div id="loading" style="display: none; text-align: center; padding: 20px;">
+    <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    Loading results...
+</div>
+
+<!-- Results container -->
+<div id="results-container">
+    <!-- Results will be loaded here -->
+</div>
+
+<!-- Pagination -->
+<div id="pagination" style="text-align: center; margin: 20px 0;">
+    <!-- Pagination will be loaded here -->
+</div>
+
+<script>
+let currentPage = 1;
+let currentFilters = {
+    search: '',
+    status: 'all',
+    threat: 'all',
+    per_page: 20
+};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadResults();
+    
+    // Set up search with debounce
+    let searchTimeout;
+    document.getElementById('search-input').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentFilters.search = this.value;
+            currentPage = 1;
+            loadResults();
+        }, 500);
+    });
+    
+    // Filter change handlers
+    document.getElementById('status-filter').addEventListener('change', function() {
+        currentFilters.status = this.value;
+        currentPage = 1;
+        loadResults();
+    });
+    
+    document.getElementById('threat-filter').addEventListener('change', function() {
+        currentFilters.threat = this.value;
+        currentPage = 1;
+        loadResults();
+    });
+    
+    document.getElementById('per-page').addEventListener('change', function() {
+        currentFilters.per_page = parseInt(this.value);
+        currentPage = 1;
+        loadResults();
+    });
+});
+
+async function loadResults() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results-container').innerHTML = '';
+    document.getElementById('pagination').innerHTML = '';
+    
+    try {
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: currentFilters.per_page,
+            search: currentFilters.search,
+            status: currentFilters.status,
+            threat: currentFilters.threat
+        });
+        
+        const response = await fetch(`/api/files/browse?${params}`);
+        const data = await response.json();
+        
+        displayResults(data.files);
+        displayPagination(data.pagination);
+        
+    } catch (error) {
+        document.getElementById('results-container').innerHTML = '<p style="color: red;">Error loading results: ' + error.message + '</p>';
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function displayResults(files) {
+    const container = document.getElementById('results-container');
+    
+    if (files.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No files found matching your criteria.</p>';
+        return;
+    }
+    
+    const html = files.map(file => {
+        const threatClass = file.threat_level === 'High' ? 'threat-high' : 
+                           file.threat_level === 'Medium' ? 'threat-medium' : 'threat-low';
+        
+        const uploadDate = new Date(file.upload_time).toLocaleDateString();
+        const uploadTime = new Date(file.upload_time).toLocaleTimeString();
+        
+        return `
+            <div class="file-card">
+                <div class="file-header">
+                    <div>
+                        <h4 style="margin: 0; color: #007bff;">${file.filename}</h4>
+                        <div style="font-size: 12px; color: #666; margin-top: 3px;">
+                            ${file.file_type} | ${Math.round(file.size / 1024)} KB
+                        </div>
+                    </div>
+                    
+                    <div class="detection-badges">
+                        ${file.yara_matches > 0 ? `<span class="detection-badge badge-yara">🔍 ${file.yara_matches} YARA</span>` : ''}
+                        ${file.av_detections > 0 ? `<span class="detection-badge badge-av">🛡️ ${file.av_detections} AV</span>` : ''}
+                        ${file.yara_matches === 0 && file.av_detections === 0 ? `<span class="detection-badge badge-clean">✅ Clean</span>` : ''}
+                        ${file.extracted_strings > 0 ? `<span class="detection-badge badge-strings">🔤 ${file.extracted_strings}</span>` : ''}
+                    </div>
+                    
+                    <div>
+                        <span class="threat-badge ${threatClass}">${file.threat_level} Risk</span>
+                    </div>
+                </div>
+                
+                <div class="file-details">
+                    <div>
+                        <strong>SHA256:</strong><br>
+                        <span style="font-family: monospace; font-size: 12px; color: #666;">${file.sha256_short}</span>
+                    </div>
+                    
+                    <div>
+                        <strong>Upload Date:</strong><br>
+                        <span style="font-size: 12px;">${uploadDate}<br>${uploadTime}</span>
+                    </div>
+                    
+                    <div>
+                        <strong>Status:</strong><br>
+                        <span style="font-size: 12px; color: ${file.status === 'completed' ? '#28a745' : '#ffc107'};">
+                            ${file.status.toUpperCase()}
+                        </span>
+                    </div>
+                    
+                    <div style="text-align: right;">
+                        <div class="btn-group" style="flex-direction: column;">
+                            <button onclick="window.location.href='/results/${file.id}'" class="btn">View Details</button>
+                            <button onclick="deleteFile(${file.id}, '${file.filename}')" class="btn" style="background: #dc3545;">Delete</button>
+                        </div>
+                    </div>                
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+function displayPagination(pagination) {
+    const container = document.getElementById('pagination');
+    
+    if (pagination.pages <= 1) {
+        container.innerHTML = `<div style="color: #666; font-size: 14px;">Showing ${pagination.total} result(s)</div>`;
+        return;
+    }
+    
+    let html = '<div style="margin-bottom: 10px;">';
+    
+    // Previous button
+    html += `<button class="pagination-btn" ${!pagination.has_prev ? 'disabled' : ''} onclick="goToPage(${pagination.page - 1})">« Previous</button>`;
+    
+    // Page numbers (show max 5 pages around current)
+    const start = Math.max(1, pagination.page - 2);
+    const end = Math.min(pagination.pages, pagination.page + 2);
+    
+    if (start > 1) {
+        html += `<button class="pagination-btn" onclick="goToPage(1)">1</button>`;
+        if (start > 2) html += '<span style="padding: 0 8px;">...</span>';
+    }
+    
+    for (let i = start; i <= end; i++) {
+        html += `<button class="pagination-btn ${i === pagination.page ? 'current-page' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    
+    if (end < pagination.pages) {
+        if (end < pagination.pages - 1) html += '<span style="padding: 0 8px;">...</span>';
+        html += `<button class="pagination-btn" onclick="goToPage(${pagination.pages})">${pagination.pages}</button>`;
+    }
+    
+    // Next button
+    html += `<button class="pagination-btn" ${!pagination.has_next ? 'disabled' : ''} onclick="goToPage(${pagination.page + 1})">Next »</button>`;
+    
+    html += '</div>';
+    html += `<div style="color: #666; font-size: 14px;">
+        Showing page ${pagination.page} of ${pagination.pages} (${pagination.total} total results)
+    </div>`;
+    
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    loadResults();
+}
+
+async function deleteFile(fileId, filename) {
+    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/files/delete/${fileId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`File "${filename}" deleted successfully.`);
+            loadResults(); // Refresh the results
+        } else {
+            alert('Error deleting file: ' + result.error);
+        }
+        
+    } catch (error) {
+        alert('Error deleting file: ' + error.message);
+    }
+}
+</script>
+
+{% endblock %}

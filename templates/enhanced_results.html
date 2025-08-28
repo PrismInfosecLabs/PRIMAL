@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🔬 Enhanced Analysis Results</h2>
+    <div>
+        <a href="/browse" class="btn" >📋 Browse All Results</a>
+        <a href="/" class="btn">← Back to Upload</a>
+    </div>
+</div>
+
+<div class="results">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0;">
+        <div>
+            <p><strong>Filename:</strong> {{ file_data.filename }}</p>
+            <p><strong>File Type:</strong> {{ file_data.file_type }}</p>
+            <p><strong>Size:</strong> {{ file_data.size }} bytes</p>
+        </div>
+        <div>
+            <p><strong>MD5:</strong> <span class="hash">{{ file_data.md5 }}</span></p>
+            <p><strong>SHA256:</strong> <span class="hash">{{ file_data.sha256 }}</span></p>
+        </div>
+        <div>
+            <p><strong>Upload Time:</strong> {{ file_data.upload_time }}</p>
+            <p><strong>Status:</strong> {{ file_data.status }}</p>
+        </div>
+    </div>
+</div>
+
+<h3>🛡️ Multi-Engine Antivirus Results</h3>
+{% if av_results %}
+    <div style="margin: 15px 0;">
+        {% for av in av_results %}
+        <div style="margin: 8px 0; padding: 15px; border: 1px solid 
+            {% if av.status == 'infected' %}#dc3545{% elif av.status == 'clean' %}#28a745{% elif av.status == 'submitted' %}#007bff{% else %}#ffc107{% endif %}; 
+            border-radius: 4px; background: 
+            {% if av.status == 'infected' %}#dc354515{% elif av.status == 'clean' %}#28a74515{% elif av.status == 'submitted' %}#007bff15{% else %}#ffc10715{% endif %};" 
+            data-status="{{ av.status }}" data-engine="{{ av.engine }}">>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                    <strong style="font-size: 16px;">
+                        {% if av.status == 'infected' %}🚨{% elif av.status == 'clean' %}✅{% elif av.status == 'submitted' %}⏳{% else %}⚠️{% endif %}
+                        {{ av.engine }}:
+                    </strong>
+                    <span style="margin-left: 8px;">{{ av.result }}</span>
+                </div>
+                {% if av.scan_time %}
+                    <span style="font-size: 12px;">{{ av.scan_time }}s</span>
+                {% endif %}
+            </div>
+            
+            <!-- Enhanced details section -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                
+                <!-- Engine coverage info -->
+                {% if av.total_engines and av.total_engines > 1 %}
+                <div>
+                    <small><strong>Engine Coverage:</strong> {{ av.total_engines }} engines</small><br>
+                    {% if av.detections > 0 %}
+                        <small><strong>Detections:</strong> {{ av.detections }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Threat score -->
+                {% if av.threat_score is not none %}
+                <div>
+                    <small style="color: {% if av.threat_score > 70 %}#dc3545{% elif av.threat_score > 30 %}#ffc107{% else %}#28a745{% endif %};">
+                        <strong>Threat Score:</strong> {{ av.threat_score }}/100
+                    </small>
+                </div>
+                {% endif %}
+                
+
+
+                <!-- Analysis links -->
+                {% if av.analysis_url or av.permalink %}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {% if av.analysis_url %}
+                        <a href="{{ av.analysis_url }}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 12px;">
+                            View on {{ av.engine }}
+                        </a>
+                    {% elif av.permalink %}
+                        <a href="{{ av.permalink }}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 12px;">
+                            View Results
+                        </a>
+                    {% endif %}
+                </div>
+                {% endif %}        
+        
+                <!-- IDs for reference -->
+                {% if av.scan_id or av.data_id %}
+                <div>
+                    {% if av.scan_id %}
+                        <small style="font-family: monospace;">
+                            <strong>Scan ID:</strong> 
+                            {% if av.analysis_url %}
+                                <a href="{{ av.analysis_url }}" target="_blank" style="text-decoration: none;">{{ av.scan_id[:16] }}...</a>
+                            {% else %}
+                                {{ av.scan_id[:16] }}...
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                    {% if av.data_id %}
+                        <small style="font-family: monospace;">
+                            <strong>Data ID:</strong> 
+                            {% if av.analysis_url %}
+                                <a href="{{ av.analysis_url }}" target="_blank" style="text-decoration: none;">{{ av.data_id }}</a>
+                            {% else %}
+                                {{ av.data_id }}
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Threat details for infected files -->
+            {% if av.status == 'infected' and av.engine_details %}
+                <div style="margin-top: 10px; padding: 8px; ; border-radius: 4px;">
+                    <strong>Detection Details:</strong>
+                    <div style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
+                        {% for detection in av.engine_details.detection_details[:5] %}
+                            <div style="font-size: 12px; margin: 3px 0;">
+                                <strong>{{ detection.engine }}:</strong> {{ detection.threat }}
+                                {% if detection.version %}<small>(v{{ detection.version }})</small>{% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if av.engine_details.detection_details|length > 5 %}
+                            <div style="font-size: 12px; margin-top: 5px;">
+                                ...and {{ av.engine_details.detection_details|length - 5 }} more detections
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Scan timestamp -->
+            {% if av.created_at %}
+                <div style="margin-top: 8px; font-size: 11px;">
+                    Scanned: {{ av.created_at }}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <!-- Summary -->
+        {% set infected_count = av_results | selectattr('status', 'equalto', 'infected') | list | length %}
+        {% set clean_count = av_results | selectattr('status', 'equalto', 'clean') | list | length %}
+        {% set total_engines = av_results | sum(attribute='total_engines') %}
+        
+        <div style="margin-top: 15px; padding: 10px; border-radius: 4px; font-size: 14px;">
+            <strong>Analysis Summary:</strong> 
+            {{ av_results|length }} scanning service(s) used, 
+            {{ total_engines }} total AV engines covered, 
+            {% if infected_count > 0 %}
+                <span>{{ infected_count }} service(s) detected threats</span>
+            {% else %}
+                <span>No threats detected</span>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div style="padding: 15px; border-radius: 4px; margin: 10px 0;">
+        No antivirus results available for this file.
+    </div>
+{% endif %}
+
+<!-- String Analysis Results -->
+{% if strings_summary %}
+<h3>🔤 String Analysis Summary</h3>
+<div style="padding: 15px; border-radius: 4px; margin: 15px 0;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        {% for string_cat in strings_summary %}
+        <div style="text-align: center; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+            <div style="font-size: 18px; font-weight: bold;">{{ string_cat.count }}</div>
+            <div style="font-size: 12px;">{{ string_cat.type|title }} - {{ string_cat.category|title }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="text-align: center; margin-top: 10px;">
+        <button onclick="loadDetailedStrings(FILE_ID)" class="btn">
+            🔍 View Detailed Strings
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- YARA Analysis Results -->
+<h3>🔍 YARA Analysis Results</h3>
+{% if yara_matches %}
+    <div style="border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin: 10px 0;">
+        <h4>🚨 {{ yara_matches|length }} YARA Rule(s) Matched</h4>
+        
+        {% for match in yara_matches %}
+        <div style="margin: 10px 0; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="margin: 0;">{{ match.rule }}</h5>
+                <button onclick="toggleYaraDetails('yara-{{ loop.index }}')" class="btn" style="padding: 4px 8px; font-size: 12px;">
+                    <span id="yara-{{ loop.index }}-btn">Show Details</span>
+                </button>
+            </div>
+            
+            {% if match.meta %}
+            <div style="margin: 10px 0;">
+                <strong>Metadata:</strong>
+                <ul style="margin: 5px 0 0 20px;">
+                    {% for key, value in match.meta.items() %}
+                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <!-- String match summary (always visible) -->
+            {% if match.strings %}
+            <div style="margin: 10px 0;">
+                <strong>String Matches:</strong> {{ match.strings|length }} pattern(s) found
+            </div>
+            {% endif %}
+            
+            <!-- Detailed string matches (collapsible) -->
+            <div id="yara-{{ loop.index }}" style="display: none; margin: 10px 0;">
+                {% if match.strings %}
+                <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; background: #f8f9fa;">
+                    <strong>Detailed String Matches:</strong>
+                    {% for string in match.strings %}
+                    <div style="margin: 8px 0; padding: 8px; border-left: 3px solid #007bff;">
+                        <code style="padding: 2px 4px; background: #e9ecef; border-radius: 2px;">{{ string.identifier }}</code>
+                        <small style="color: #6c757d; margin-left: 8px;">({{ string.instances|length }} instance{{ 's' if string.instances|length != 1 else '' }})</small>
+                        
+                        <!-- Show only first 2 instances by default -->
+                        {% for instance in string.instances[:2] %}
+                        <div style="margin: 5px 0 5px 20px; font-size: 12px; padding: 4px; background: #fff; border-radius: 2px;">
+                            <strong>Offset:</strong> 0x{{ "%x"|format(instance.offset) }} 
+                            <strong>Length:</strong> {{ instance.length }}<br>
+                            <strong>Data:</strong> 
+                            <code style="word-break: break-all;">{{ instance.matched_data[:100] }}{% if instance.matched_data|length > 100 %}...{% endif %}</code>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if string.instances|length > 2 %}
+                        <div style="margin-left: 20px;">
+                            <small style="color: #6c757d;">... and {{ string.instances|length - 2 }} more instance(s)</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="padding: 15px; border-radius: 4px; margin: 10px 0;">
+        ✅ No YARA rules matched. File appears clean based on current rule set.
+    </div>
+{% endif %}
+
+<!-- Actions -->
+<div style="margin-top: 30px; text-align: center;">
+    <div class="btn-group" style="justify-content: center;">
+        <button onclick="rescanFile(FILE_ID)" class="btn">Rescan with AV Engines</button>
+        <button onclick="rescanYara(FILE_ID)" class="btn">Rescan with YARA Rules</button>
+        <button onclick="rescanStrings(FILE_ID)" class="btn">Rescan String Analysis</button>
+        <button onclick="rescanBoth(FILE_ID)" class="btn">Rescan YARA + Strings</button>
+        <button onclick="updateSubmittedAnalyses({{ file_data.id }})" class="btn">Check Analysis Status</button>
+    </div>
+    <div class="btn-group" style="justify-content: center; margin-top: 10px;">
+        <a href="/rules" class="btn">Manage YARA Rules</a>
+        <a href="/browse" class="btn">Browse All Results</a>
+    </div>
+</div>
+
+<!-- Detailed Strings Modal -->
+<div id="strings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: #1E164D">
+    <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>🔤 Extracted Strings Analysis</h3>
+            <button onclick="closeStringsModal()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">? Close</button>
+        </div>
+        <div id="strings-content">
+            <p style="text-align: center;">Loading strings...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const FILE_ID = {{ file_data.id }};
+
+function toggleYaraDetails(elementId) {
+    const detailsDiv = document.getElementById(elementId);
+    const buttonSpan = document.getElementById(elementId + '-btn');
+    
+    if (detailsDiv.style.display === 'none' || detailsDiv.style.display === '') {
+        detailsDiv.style.display = 'block';
+        buttonSpan.textContent = 'Hide Details';
+    } else {
+        detailsDiv.style.display = 'none';
+        buttonSpan.textContent = 'Show Details';
+    }
+}
+
+async function rescanFile(fileId) {
+    if (!confirm('Rescan this file with all available AV engines? This may take a few minutes.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/analysis/scan/${fileId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}) // Send empty JSON object
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('File rescanned successfully! Refreshing page...');
+            location.reload();
+        } else {
+            alert('Error rescanning file: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error rescanning file: ' + error.message);
+    }
+}
+
+async function loadDetailedStrings(fileId) {
+    document.getElementById('strings-modal').style.display = 'block';
+    document.getElementById('strings-content').innerHTML = '<p style="text-align: center;">Loading strings...</p>';
+    
+    try {
+        // UPDATED PATH: Changed from /api/strings/ to /api/analysis/strings/
+        const response = await fetch(`/api/analysis/strings/${fileId}`);
+        const strings = await response.json();
+        
+        if (strings.error) {
+            document.getElementById('strings-content').innerHTML = `<p style="color: red;">Error: ${strings.error}</p>`;
+            return;
+        }
+        
+        let html = '';
+        
+        for (const [type, categories] of Object.entries(strings)) {
+            html += `<h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">${type.toUpperCase()}</h4>`;
+            
+            for (const [category, stringList] of Object.entries(categories)) {
+                html += `<h5 style="margin: 15px 0 10px 0;">${category} (${stringList.length} items)</h5>`;
+                html += '<div style="max-height: 200px; overflow-y: auto; padding: 10px; border-radius: 4px; margin-bottom: 15px;">';
+                
+                stringList.slice(0, 50).forEach(item => {
+                    html += `<div style="margin: 3px 0; font-family: monospace; font-size: 12px; padding: 2px 4px; border-radius: 2px;">`;
+                    html += `<strong>${item.value}</strong>`;
+                    if (item.context) {
+                        html += `<br><small>Context: ${item.context}</small>`;
+                    }
+                    html += '</div>';
+                });
+                
+                if (stringList.length > 50) {
+                    html += `<div style="font-style: italic; margin-top: 5px;">...and ${stringList.length - 50} more items</div>`;
+                }
+                
+                html += '</div>';
+            }
+        }
+        
+        if (html === '') {
+            html = '<p>No extracted strings found for this file.</p>';
+        }
+        
+        document.getElementById('strings-content').innerHTML = html;
+        
+    } catch (error) {
+        document.getElementById('strings-content').innerHTML = `<p style="color: red;">Error loading strings: ${error.message}</p>`;
+    }
+}
+
+function closeStringsModal() {
+    document.getElementById('strings-modal').style.display = 'none';
+}
+
+async function updateSubmittedAnalyses(fileId) {
+    try {
+        const response = await fetch(`/api/analysis/update/${fileId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}) // Send empty JSON object
+        });
+        
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const htmlResponse = await response.text();
+            console.error('Non-JSON response:', htmlResponse);
+            alert('Error: Server returned non-JSON response (check server logs)');
+            return;
+        }
+        
+        const result = await response.json();
+        
+        // Check for API errors
+        if (result.error) {
+            alert('Error checking analysis status: ' + result.error);
+            return;
+        }
+        
+        if (result.updated_count > 0) {
+            alert(`Updated ${result.updated_count} analysis result(s)! Refreshing page...`);
+            location.reload();
+        } else {
+            let message = 'Analysis status checked:\n';
+            
+            // Add safety check for updates array
+            if (result.updates && Array.isArray(result.updates)) {
+                result.updates.forEach(update => {
+                    message += `${update.engine}: ${update.status}`;
+                    if (update.message) {
+                        message += ` - ${update.message}`;
+                    }
+                    message += '\n';
+                });
+            } else {
+                message += 'No analysis updates available or invalid response format\n';
+                console.error('Invalid updates array:', result);
+            }
+            
+            if (result.message) {
+                message += '\n' + result.message;
+            }
+            
+            alert(message);
+        }
+    } catch (error) {
+        console.error('Full error details:', error);
+        alert('Error checking analysis status: ' + error.message);
+    }
+}
+
+// Auto-check for updates every 2 minutes if there are submitted analyses
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there are any submitted analyses on the page
+    const submittedAnalyses = document.querySelectorAll('[data-status="submitted"]');
+    if (submittedAnalyses.length > 0) {
+        // Auto-check every 2 minutes
+        setInterval(() => {
+            updateSubmittedAnalyses({{ file_data.id }});
+        }, 120000); // 2 minutes
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('strings-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeStringsModal();
+    }
+});
+
+// Auto-check for updates every 2 minutes if there are submitted analyses
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there are any submitted analyses on the page
+    const submittedElements = document.querySelectorAll('[data-status="submitted"]');
+    if (submittedElements.length > 0) {
+        console.log(`Found ${submittedElements.length} submitted analyses, will auto-check every 2 minutes`);
+        // Show notification about auto-checking
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position: fixed; top: 10px; right: 10px; padding: 10px; border-radius: 4px; z-index: 1000; font-size: 12px;';
+        notification.textContent = `Auto-checking ${submittedElements.length} submitted analysis(es) every 2 minutes...`;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+        
+        // Auto-check every 2 minutes
+        setInterval(() => {
+            console.log('Auto-checking analysis status...');
+            updateSubmittedAnalyses(FILE_ID);
+        }, 120000); // 2 minutes
+    }
+});
+
+async function rescanYara(fileId) {
+    if (!confirm('Rescan this file with YARA rules? Current YARA matches will be replaced.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/analysis/rescan-yara/${fileId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('YARA rescan completed! Refreshing page...');
+            location.reload();
+        } else {
+            alert('Error rescanning with YARA: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error rescanning with YARA: ' + error.message);
+    }
+}
+
+async function rescanStrings(fileId) {
+    if (!confirm('Rescan this file for strings? Current string analysis will be replaced.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/analysis/rescan-strings/${fileId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('String analysis completed! Refreshing page...');
+            location.reload();
+        } else {
+            alert('Error rescanning strings: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error rescanning strings: ' + error.message);
+    }
+}
+
+async function rescanBoth(fileId) {
+    if (!confirm('Rescan this file with YARA rules and string analysis? This may take a moment.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/analysis/rescan-both/${fileId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('YARA and string rescan completed! Refreshing page...');
+            location.reload();
+        } else {
+            alert('Error rescanning: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error rescanning: ' + error.message);
+    }
+}
+</script>
+
+{% endblock %}

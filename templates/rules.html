@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>📋 YARA Rules Management</h2>
+    <a href="/" class="btn">← Back to Analysis</a>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="padding: 10px; border-radius: 4px; margin: 10px 0;">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Rule Statistics -->
+{% if stats %}
+<div style="padding: 15px; border-radius: 4px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">📊 Rule Statistics</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div>
+            <strong>Total Rule Files:</strong> {{ stats.total_files }}<br>
+            <strong>Directories:</strong> {{ stats.by_directory|length }}
+        </div>
+        <div>
+            <strong>Top Directories:</strong><br>
+            {% if stats and stats.by_directory %}
+              {% set top_dirs = stats.by_directory.items() | list %}
+              {% for directory, count in top_dirs[:5] %}
+                {{ directory }}: {{ count }} files
+            	<small>{{ directory }}: {{ count }} files</small><br>
+              {% endfor %}
+            {% else %}
+              <p>No directory statistics available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Upload New Rule -->
+<div style="padding: 15px; border-radius: 4px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">📁 Upload New YARA Rule</h3>
+    <form action="/rules/upload" method="post" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 200px auto; gap: 10px; align-items: end;">
+        <div>
+            <label for="rule_file"><strong>Select Rule File:</strong></label><br>
+            <input type="file" name="rule_file" id="rule_file" accept=".yar,.yara" required style="margin-top: 5px; width: 100%;">
+        </div>
+        
+        <div>
+            <label for="subdirectory"><strong>Subdirectory:</strong></label><br>
+            <input type="text" name="subdirectory" id="subdirectory" 
+                   placeholder="e.g., custom" 
+                   style="padding: 5px; margin-top: 5px; width: 100%;">
+        </div>
+        
+        <button type="submit" class="btn">📤 Upload</button>
+    </form>
+</div>
+
+<!-- Controls -->
+<div style="display: flex; gap: 10px; margin: 20px 0; align-items: center; flex-wrap: wrap;">
+    <form action="/rules/reload" method="post" style="display: inline;">
+        <button type="submit" class="btn">🔄 Reload Rules</button>
+    </form>
+    
+    <div style="display: flex; gap: 10px; flex: 1; min-width: 300px;">
+        <input type="text" id="search-input" placeholder="Search rules..." 
+               style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
+        
+        <select id="directory-filter" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="all">All Directories</option>
+        </select>
+        
+        <select id="per-page" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="10">10 per page</option>
+            <option value="20" selected>20 per page</option>
+            <option value="50">50 per page</option>
+        </select>
+    </div>
+</div>
+
+<!-- Loading indicator -->
+<div id="loading" style="display: none; text-align: center; padding: 20px;">
+    <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    Loading rules...
+</div>
+
+<!-- Rules container -->
+<div id="rules-container">
+    <!-- Rules will be loaded here via JavaScript -->
+</div>
+
+<!-- Pagination -->
+<div id="pagination" style="text-align: center; margin: 20px 0;">
+    <!-- Pagination will be loaded here -->
+</div>
+
+<!-- Rule content modal -->
+<div id="rule-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;">
+    <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto; background: #1e164d;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 id="modal-title">Rule Content</h3>
+            <button onclick="closeModal()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+        </div>
+        <div id="modal-content">
+            <pre style="padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 60vh;"><code id="modal-code"></code></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentSearch = '';
+let currentDirectory = 'all';
+let currentPerPage = 20;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadDirectories();
+    loadRules();
+    
+    // Set up search with debounce
+    let searchTimeout;
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearch = this.value;
+                currentPage = 1;
+                loadRules();
+            }, 300);
+        });
+    }
+    
+    // Directory filter
+    const dirFilter = document.getElementById('directory-filter');
+    if (dirFilter) {
+        dirFilter.addEventListener('change', function() {
+            currentDirectory = this.value;
+            currentPage = 1;
+            loadRules();
+        });
+    }
+    
+    // Per page
+    const perPageSelect = document.getElementById('per-page');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function() {
+            currentPerPage = parseInt(this.value);
+            currentPage = 1;
+            loadRules();
+        });
+    }
+});
+
+async function loadDirectories() {
+    try {
+        const response = await fetch('/api/rules/directories');
+        
+        // KEY FIX: Check if response is OK and content-type is JSON
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Non-JSON response for directories:', await response.text());
+            return; // Fail silently to prevent errors
+        }
+        
+        const directories = await response.json();
+        
+        const select = document.getElementById('directory-filter');
+        if (select && Array.isArray(directories)) {
+            // Clear existing options except "All"
+            select.innerHTML = '<option value="all">All Directories</option>';
+            
+            directories.forEach(dir => {
+                const option = document.createElement('option');
+                option.value = dir;
+                option.textContent = dir;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading directories:', error);
+        // Don't show error to user for this non-critical function
+    }
+}
+
+async function loadRules() {
+    const loadingDiv = document.getElementById('loading');
+    const rulesContainer = document.getElementById('rules-container');
+    const paginationDiv = document.getElementById('pagination');
+    
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (rulesContainer) rulesContainer.innerHTML = '';
+    if (paginationDiv) paginationDiv.innerHTML = '';
+    
+    try {
+        const params = new URLSearchParams({
+            page: currentPage,
+            per_page: currentPerPage,
+            search: currentSearch,
+            directory: currentDirectory
+        });
+        
+        const response = await fetch(`/api/rules?${params}`);
+        
+        // KEY FIX: Check response status and content-type
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const htmlResponse = await response.text();
+            console.error('Non-JSON response for rules:', htmlResponse);
+            throw new Error('Server returned HTML instead of JSON (check server logs)');
+        }
+        
+        const data = await response.json();
+        
+        // Handle API errors gracefully
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        displayRules(data.rules || []);
+        displayPagination(data.pagination || {});
+        
+    } catch (error) {
+        console.error('Error loading rules:', error);
+        if (rulesContainer) {
+            rulesContainer.innerHTML = `<p style="color: red;">Error loading rules: ${error.message}</p>`;
+        }
+    } finally {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+    }
+}
+
+function displayRules(rules) {
+    const container = document.getElementById('rules-container');
+    if (!container) return;
+    
+    if (!Array.isArray(rules) || rules.length === 0) {
+        container.innerHTML = '<p>No rules found matching your criteria.</p>';
+        return;
+    }
+    
+    const html = rules.map(rule => `
+        <div class="rule-item">
+            <div class="rule-header">
+                <div>
+                    <div><strong>${escapeHtml(rule.filename || 'Unknown')}</strong></div>
+                    <div class="rule-info">${escapeHtml(rule.relative_path || '')} | ${escapeHtml(rule.directory || 'root')}</div>
+                </div>
+                <div class="rule-info">
+                    ${rule.size || 0} bytes<br>
+                    ~${rule.estimated_rules || 0} rules
+                </div>
+                <button class="view-content-btn" onclick="viewRuleContent('${escapeHtml(rule.relative_path || '')}', '${escapeHtml(rule.filename || '')}')">
+                    👁️ View Content
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function displayPagination(pagination) {
+    const container = document.getElementById('pagination');
+    if (!container) return;
+    
+    if (!pagination || pagination.pages <= 1) {
+        container.innerHTML = pagination && pagination.total ? 
+            `<div style="font-size: 14px;">Showing ${pagination.total} result(s)</div>` : '';
+        return;
+    }
+    
+    let html = '<div>';
+    
+    // Previous button
+    html += `<button class="pagination-btn" ${!pagination.has_prev ? 'disabled' : ''} onclick="goToPage(${pagination.page - 1})">« Previous</button>`;
+    
+    // Page numbers
+    const start = Math.max(1, pagination.page - 2);
+    const end = Math.min(pagination.pages, pagination.page + 2);
+    
+    if (start > 1) {
+        html += `<button class="pagination-btn" onclick="goToPage(1)">1</button>`;
+        if (start > 2) html += '<span style="padding: 0 8px;">...</span>';
+    }
+    
+    for (let i = start; i <= end; i++) {
+        html += `<button class="pagination-btn ${i === pagination.page ? 'current-page' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    
+    if (end < pagination.pages) {
+        if (end < pagination.pages - 1) html += '<span style="padding: 0 8px;">...</span>';
+        html += `<button class="pagination-btn" onclick="goToPage(${pagination.pages})">${pagination.pages}</button>`;
+    }
+    
+    // Next button
+    html += `<button class="pagination-btn" ${!pagination.has_next ? 'disabled' : ''} onclick="goToPage(${pagination.page + 1})">Next »</button>`;
+    
+    html += '</div>';
+    html += `<div style="margin-top: 10px; color: #666; font-size: 14px;">
+        Showing page ${pagination.page} of ${pagination.pages} (${pagination.total} total rules)
+    </div>`;
+    
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    loadRules();
+}
+
+async function viewRuleContent(rulePath, filename) {
+    const modal = document.getElementById('rule-modal');
+    const title = document.getElementById('modal-title');
+    const code = document.getElementById('modal-code');
+    
+    if (title) title.textContent = `Rule: ${filename}`;
+    if (code) code.textContent = 'Loading...';
+    if (modal) modal.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/api/rules/content/${encodeURIComponent(rulePath)}`);
+        
+        // KEY FIX: Check response and content-type for rule content too
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            if (code) code.textContent = `Error: ${data.error}`;
+        } else {
+            if (code) code.textContent = data.content || 'No content available';
+        }
+    } catch (error) {
+        console.error('Error loading rule content:', error);
+        if (code) code.textContent = `Error loading content: ${error.message}`;
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById('rule-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('rule-modal');
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

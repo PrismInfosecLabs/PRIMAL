@@ -1,0 +1,87 @@
+FROM python:3.10-slim
+
+# Install ClamAV and required tools
+RUN apt-get update && apt-get install -y \
+    clamav \
+    clamav-daemon \
+    clamav-freshclam \
+    curl \
+    net-tools \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements for ClamAV service
+COPY requirements.clamav.txt .
+RUN pip install --no-cache-dir -r requirements.clamav.txt
+
+# Copy ClamAV service files
+COPY clamav_service.py .
+
+# Create necessary directories with proper permissions
+RUN mkdir -p shared-files logs && \
+    chmod 755 shared-files logs
+
+# CREATE AND SET ALL CLAMAV PERMISSIONS AT BUILD TIME
+# This is the key fix - do all permission setup during build, not runtime
+RUN mkdir -p /var/run/clamav /var/log/clamav && \
+    chown -R clamav:clamav /var/run/clamav /var/log/clamav /var/lib/clamav && \
+    chmod 755 /var/run/clamav /var/log/clamav && \
+    chmod 644 /var/lib/clamav/* || true
+
+# Create ClamAV configuration
+RUN echo "LogFile /var/log/clamav/clamd.log" > /etc/clamav/clamd.conf && \
+    echo "LogTime yes" >> /etc/clamav/clamd.conf && \
+    echo "DatabaseDirectory /var/lib/clamav" >> /etc/clamav/clamd.conf && \
+    echo "LocalSocket /var/run/clamav/clamd.ctl" >> /etc/clamav/clamd.conf && \
+    echo "LocalSocketGroup clamav" >> /etc/clamav/clamd.conf && \
+    echo "LocalSocketMode 666" >> /etc/clamav/clamd.conf && \
+    echo "FixStaleSocket yes" >> /etc/clamav/clamd.conf && \
+    echo "TCPSocket 3310" >> /etc/clamav/clamd.conf && \
+    echo "TCPAddr 127.0.0.1" >> /etc/clamav/clamd.conf && \
+    echo "MaxConnectionQueueLength 15" >> /etc/clamav/clamd.conf && \
+    echo "MaxThreads 20" >> /etc/clamav/clamd.conf && \
+    echo "ReadTimeout 180" >> /etc/clamav/clamd.conf && \
+    echo "CommandReadTimeout 30" >> /etc/clamav/clamd.conf && \
+    echo "SendBufTimeout 200" >> /etc/clamav/clamd.conf && \
+    echo "MaxQueue 100" >> /etc/clamav/clamd.conf && \
+    echo "IdleTimeout 30" >> /etc/clamav/clamd.conf && \
+    echo "ExcludePath ^/proc" >> /etc/clamav/clamd.conf && \
+    echo "ExcludePath ^/sys" >> /etc/clamav/clamd.conf && \
+    echo "MaxFileSize 100M" >> /etc/clamav/clamd.conf && \
+    echo "MaxScanSize 100M" >> /etc/clamav/clamd.conf && \
+    echo "MaxFiles 10000" >> /etc/clamav/clamd.conf && \
+    echo "MaxRecursion 16" >> /etc/clamav/clamd.conf && \
+    echo "FollowDirectorySymlinks no" >> /etc/clamav/clamd.conf && \
+    echo "FollowFileSymlinks no" >> /etc/clamav/clamd.conf && \
+    echo "User clamav" >> /etc/clamav/clamd.conf && \
+    echo "AllowAllMatchScan yes" >> /etc/clamav/clamd.conf && \
+    echo "Foreground no" >> /etc/clamav/clamd.conf && \
+    echo "Debug no" >> /etc/clamav/clamd.conf && \
+    echo "LeaveTemporaryFiles no" >> /etc/clamav/clamd.conf
+
+# Configure freshclam
+RUN echo "DatabaseDirectory /var/lib/clamav" > /etc/clamav/freshclam.conf && \
+    echo "UpdateLogFile /var/log/clamav/freshclam.log" >> /etc/clamav/freshclam.conf && \
+    echo "LogTime yes" >> /etc/clamav/freshclam.conf && \
+    echo "DatabaseOwner clamav" >> /etc/clamav/freshclam.conf && \
+    echo "DatabaseMirror database.clamav.net" >> /etc/clamav/freshclam.conf && \
+    echo "MaxAttempts 5" >> /etc/clamav/freshclam.conf && \
+    echo "ScriptedUpdates yes" >> /etc/clamav/freshclam.conf
+
+# Update ClamAV signatures and fix permissions afterwards
+RUN freshclam --user=clamav && \
+    chown -R clamav:clamav /var/lib/clamav && \
+    chmod -R 644 /var/lib/clamav/*
+
+# Create startup script with fixed logic
+COPY start_clamav.sh ./start_clamav.sh
+RUN chmod +x start_clamav.sh
+
+# Expose ports
+EXPOSE 5000 3310
+
+# Run startup script
+CMD ["./start_clamav.sh"]
