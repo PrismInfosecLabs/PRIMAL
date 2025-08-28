@@ -1,6 +1,6 @@
 # 🔬 PRIMAL v2.0 - Personal Malware Analysis Lab
 
-**P**rism **R**esearch **I**nfosec **M**alware **A**nalysis **L**ab
+**PR**ism  **I**nfosec **M**alware **A**nalysis **L**ab
 
 A comprehensive, containerized malware analysis platform built with a microservices architecture for scalable, multi-engine static analysis.
 
@@ -8,6 +8,9 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ![Docker](https://img.shields.io/badge/docker-required-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+
+#This application is currently designed to run on an Ubuntu 22.04 LTS Operating system
 
 ## 🌟 Features
 
@@ -81,7 +84,7 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ## 🚀 Quick Start
 
 ### Prerequisites
-
+- **Ubutnu 22.04 LTS
 - **Docker & Docker Compose**: Version 20.10+ recommended
 - **8GB RAM**: Minimum for running all services
 - **10GB Disk Space**: For containers, databases, and file storage
@@ -114,16 +117,25 @@ A comprehensive, containerized malware analysis platform built with a microservi
    , and you can see what  they are in the docker logs.
    ```
    
-4. **Start the Platform**
+4. **Build the Platform**
    ```bash
    # Build and start all services
-   docker-compose up -d
+   sudo docker-compose build
    
    # Check service status
-   docker-compose ps
+   sudo docker-compose ps
    ```
 
-5. **Access the Interface**
+5. **Start the Platform**
+   ```bash
+   # Build and start all services
+   sudo docker-compose up -d
+   
+   # Check service status
+   sudo docker-compose ps
+   ```
+
+6. **Access the Interface**
    ```
    🌐 Web Interface: http://0.0.0.0:8080
    📊 Container Health: http://0.0.0.0:8080/api/containers/health
@@ -367,13 +379,13 @@ POST /api/containers/add
 
 ```bash
 # Check all container status
-docker-compose ps
+sudo docker-compose ps
 
 # View container logs
-docker-compose logs [service-name]
+sudo docker-compose logs [service-name]
 
 # Monitor resource usage
-docker stats
+sudo docker stats
 
 # Check application health
 curl http://localhost:8080/api/containers/health
@@ -383,27 +395,27 @@ curl http://localhost:8080/api/containers/health
 
 ```bash
 # Access database container
-docker-compose exec orchestrator python -c "
+sudo docker-compose exec orchestrator python -c "
 from app import get_db_connection
 conn = get_db_connection()
 # Run maintenance queries
 "
 
 # Backup database
-docker-compose exec orchestrator cp /app/data/malware_analysis.db /app/backups/
+sudo docker-compose exec orchestrator cp /app/data/malware_analysis.db /app/backups/
 ```
 
 ### Log Management
 
 ```bash
 # View application logs
-docker-compose logs orchestrator
+sudo docker-compose logs orchestrator
 
 # View ClamAV logs  
-docker-compose logs clamav-scanner
+sudo docker-compose logs clamav-scanner
 
 # Follow logs in real-time
-docker-compose logs -f
+sudo docker-compose logs -f
 ```
 
 ## 🔧 Troubleshooting
@@ -413,7 +425,7 @@ docker-compose logs -f
 **🐳 Container Won't Start**
 ```bash
 # Check container logs
-docker-compose logs [service-name]
+sudo docker-compose logs [service-name]
 
 # Verify port availability
 netstat -tulpn | grep :8080
@@ -425,16 +437,16 @@ systemctl status docker
 **🔌 Container Communication Failed**
 ```bash
 # Test inter-container connectivity
-docker-compose exec orchestrator curl http://clamav-scanner:5000/health
+sudo docker-compose exec orchestrator curl http://clamav-scanner:5000/health
 
 # Check Docker network
-docker network inspect primal-v2_malware-analysis
+sudo docker network inspect primal-v2_malware-analysis
 ```
 
 **💾 Database Issues**
 ```bash
 # Reinitialize database
-docker-compose exec orchestrator python -c "
+sudo docker-compose exec orchestrator python -c "
 from app import analyzer
 analyzer.init_database()
 "
@@ -443,13 +455,13 @@ analyzer.init_database()
 **🛡️ ClamAV Issues**
 ```bash
 # Update signatures manually
-docker-compose exec clamav-scanner freshclam
+sudo docker-compose exec clamav-scanner freshclam
 
 # Restart ClamAV daemon
-docker-compose restart clamav-scanner
+sudo docker-compose restart clamav-scanner
 
 # Check ClamAV daemon status
-docker-compose exec clamav-scanner ps aux | grep clam
+sudo docker-compose exec clamav-scanner ps aux | grep clam
 ```
 
 ### Performance Optimization
@@ -460,7 +472,7 @@ docker-compose exec clamav-scanner ps aux | grep clam
 - Monitor with `docker stats`
 
 **Disk Space**
-- Regular cleanup: `docker system prune`
+- Regular cleanup: `sudo docker system prune`
 - Archive old analysis results
 - Use tmpfs for temporary scan files
 
@@ -472,21 +484,6 @@ docker-compose exec clamav-scanner ps aux | grep clam
 ## 🤝 Contributing
 
 We welcome contributions! Here's how to get started:
-
-### Development Setup
-
-```bash
-# Clone repository
-git clone https://github.com/your-org/primal-v2.git
-cd primal-v2
-
-# Create development environment
-cp .env.example .env.dev
-docker-compose -f docker-compose.dev.yml up -d
-
-# Run tests
-docker-compose exec orchestrator python -m pytest tests/
-```
 
 ### Code Standards
 
@@ -519,14 +516,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Flask Community**: Web framework
 - **Docker Community**: Containerization platform
 
-## 📞 Support
+##To-Do
 
-- **📧 Email**: support@your-org.com
-- **💬 Discord**: [Your Discord Server](https://discord.gg/your-server)
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-org/primal-v2/issues)
-- **📖 Documentation**: [Wiki](https://github.com/your-org/primal-v2/wiki)
-
----
+- ** Containerize Yara
+- ** Add support for Ubuntu 24 LTS (changes to python environments)
 
 **⚡ PRIMAL v2.0** - Empowering security researchers with scalable, containerized malware analysis capabilities.
 
