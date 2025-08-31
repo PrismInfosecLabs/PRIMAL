@@ -1,4 +1,4 @@
-# ?? PRIMAL v1.0 - Personal Malware Analysis Lab
+# ğŸ”¬ PRIMAL v1.0 - Personal Malware Analysis Lab
 
 **PR**ism  **I**nfosec **M**alware **A**nalysis **L**ab
 
@@ -9,16 +9,16 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ![Python](https://img.shields.io/badge/python-3.10-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## ? Features
+## âœ¨ Features
 
-### ??? Multi-Engine Antivirus Scanning
+### ğŸ›¡ï¸ Multi-Engine Antivirus Scanning
 
 * **Containerized Engines**: ClamAV running in isolated Docker container
 * **Remote API Integration**: VirusTotal, Hybrid Analysis, MetaDefender
 * **Extensible Architecture**: Easy addition of new AV engines
 * **Real-time Results**: Live scanning with detailed threat analysis
 
-### ?? Advanced Analysis Capabilities
+### ğŸ”¬ Advanced Analysis Capabilities
 
 * **Containerized YARA Service**: Dedicated YARA container with HTTP API for improved performance
 * **Configurable String Extraction**: Regex patterns, API calls, suspicious keywords
@@ -26,21 +26,21 @@ A comprehensive, containerized malware analysis platform built with a microservi
 * **Hash Analysis**: MD5, SHA256 calculation and verification
 * **Entropy Analysis**: Shannon entropy calculation for detecting packed/encrypted malware
 
-### ??? Threat Hunting & IOC Generation
+### ğŸ•µï¸ Threat Hunting & IOC Generation
 
 * **KQL Query Generation**: Microsoft Defender queries for threat hunting
 * **YARA Rule Creation**: Automatic rule generation from samples
 * **IOC Export**: JSON, CSV, STIX, MISP formats
 * **Detection Engineering**: Custom detection content creation
 
-### ?? Comprehensive Reporting
+### ğŸ“Š Comprehensive Reporting
 
 * **Multiple Report Types**: Summary, detailed, and threat-focused reports
 * **Export Formats**: JSON, CSV, PDF-ready HTML
 * **Historical Analysis**: Track analysis over time
 * **Comparison Analytics**: Cross-engine result analysis
 
-### ?? Microservices Architecture
+### ğŸ§© Microservices Architecture
 
 * **Three-Container Design**: Orchestrator, YARA, and ClamAV services
 * **Container Isolation**: Each service in dedicated container with health monitoring
@@ -48,62 +48,62 @@ A comprehensive, containerized malware analysis platform built with a microservi
 * **Fault Tolerance**: Service failures don't affect other engines
 * **Fast Startup**: Independent service initialization for improved performance
 
-### ?? Container Management
+### ğŸ“¦ Container Management
 
 * **Real-time Health Monitoring**: Container status dashboard
 * **Service Restart Capability**: Individual container restart functionality
 * **Resource Monitoring**: Per-service resource allocation and tracking
 * **Automated Health Checks**: Built-in service availability monitoring
 
-## ??? Architecture Overview
+## ğŸ—ï¸ Architecture Overview
 
 ```
 +-----------------------------------------------------------------------------+
-¦                         PRIMAL v1.0 Architecture                           ¦
-+-----------------------------------------------------------------------------¦
-¦                                                                             ¦
-¦  +-----------------+    +-----------------+    +-----------------+          ¦
-¦  ¦  Web Interface  ¦    ¦   File Upload   ¦    ¦ Container Mgmt  ¦          ¦
-¦  ¦     (Flask)     ¦    ¦   & Storage     ¦    ¦   Dashboard     ¦          ¦
-¦  +-----------------+    +-----------------+    +-----------------+          ¦
-¦           ¦                       ¦                       ¦                 ¦
-¦  +-----------------------------------------------------------------------+  ¦
-¦  ¦              Main Orchestrator Container                              ¦  ¦
-¦  ¦  • Analysis Coordination & File Management                            ¦  ¦
-¦  ¦  • Database Management                                                ¦  ¦
-¦  ¦  • Remote API Integration (VT, HA, MD)                                ¦  ¦
-¦  ¦  • Report Generation                                                  ¦  ¦
-¦  ¦  • Threat Hunting & IOC Generation                                    ¦  ¦
-¦  ¦  • String & Entropy Analysis                                          ¦  ¦
-¦  ¦  • Container Health Monitoring                                        ¦  ¦
-¦  +-----------------------------------------------------------------------+  ¦
-¦           ¦                                                                 ¦
-¦  +-----------------------------------------------------------------------+  ¦
-¦  ¦                       Shared File Storage                             ¦  ¦
-¦  +-----------------------------------------------------------------------+  ¦
-¦           ¦                                                                 ¦
-¦  +-----------------+    +-----------------+    +-----------------+          ¦
-¦  ¦  ClamAV Service ¦    ¦  YARA Service   ¦    ¦ Future AV Engine¦          ¦
-¦  ¦   (Container)   ¦    ¦   (Container)   ¦    ¦   (Container)   ¦          ¦
-¦  ¦  • REST API     ¦    ¦  • HTTP API     ¦    ¦  • REST API     ¦          ¦
-¦  ¦  • Auto-updates ¦    ¦  • Rule Compile ¦    ¦  • Isolated     ¦          ¦
-¦  ¦  • Health Check ¦    ¦  • Independent  ¦    ¦  • Configurable ¦          ¦
-¦  ¦  • Port: 5000   ¦    ¦    Startup      ¦    ¦  • Health Check ¦          ¦
-¦  ¦                 ¦    ¦  • Port: 5001   ¦    ¦                 ¦          ¦
-¦  +-----------------+    +-----------------+    +-----------------+          ¦
-¦                                                                             ¦
+Â¦                         PRIMAL v1.0 Architecture                           Â¦
++-----------------------------------------------------------------------------Â¦
+Â¦                                                                             Â¦
+Â¦  +-----------------+    +-----------------+    +-----------------+          Â¦
+Â¦  Â¦  Web Interface  Â¦    Â¦   File Upload   Â¦    Â¦ Container Mgmt  Â¦          Â¦
+Â¦  Â¦     (Flask)     Â¦    Â¦   & Storage     Â¦    Â¦   Dashboard     Â¦          Â¦
+Â¦  +-----------------+    +-----------------+    +-----------------+          Â¦
+Â¦           Â¦                       Â¦                       Â¦                 Â¦
+Â¦  +-----------------------------------------------------------------------+  Â¦
+Â¦  Â¦              Main Orchestrator Container                              Â¦  Â¦
+Â¦  Â¦  â€¢ Analysis Coordination & File Management                            Â¦  Â¦
+Â¦  Â¦  â€¢ Database Management                                                Â¦  Â¦
+Â¦  Â¦  â€¢ Remote API Integration (VT, HA, MD)                                Â¦  Â¦
+Â¦  Â¦  â€¢ Report Generation                                                  Â¦  Â¦
+Â¦  Â¦  â€¢ Threat Hunting & IOC Generation                                    Â¦  Â¦
+Â¦  Â¦  â€¢ String & Entropy Analysis                                          Â¦  Â¦
+Â¦  Â¦  â€¢ Container Health Monitoring                                        Â¦  Â¦
+Â¦  +-----------------------------------------------------------------------+  Â¦
+Â¦           Â¦                                                                 Â¦
+Â¦  +-----------------------------------------------------------------------+  Â¦
+Â¦  Â¦                       Shared File Storage                             Â¦  Â¦
+Â¦  +-----------------------------------------------------------------------+  Â¦
+Â¦           Â¦                                                                 Â¦
+Â¦  +-----------------+    +-----------------+    +-----------------+          Â¦
+Â¦  Â¦  ClamAV Service Â¦    Â¦  YARA Service   Â¦    Â¦ Future AV EngineÂ¦          Â¦
+Â¦  Â¦   (Container)   Â¦    Â¦   (Container)   Â¦    Â¦   (Container)   Â¦          Â¦
+Â¦  Â¦  â€¢ REST API     Â¦    Â¦  â€¢ HTTP API     Â¦    Â¦  â€¢ REST API     Â¦          Â¦
+Â¦  Â¦  â€¢ Auto-updates Â¦    Â¦  â€¢ Rule Compile Â¦    Â¦  â€¢ Isolated     Â¦          Â¦
+Â¦  Â¦  â€¢ Health Check Â¦    Â¦  â€¢ Independent  Â¦    Â¦  â€¢ Configurable Â¦          Â¦
+Â¦  Â¦  â€¢ Port: 5000   Â¦    Â¦    Startup      Â¦    Â¦  â€¢ Health Check Â¦          Â¦
+Â¦  Â¦                 Â¦    Â¦  â€¢ Port: 5001   Â¦    Â¦                 Â¦          Â¦
+Â¦  +-----------------+    +-----------------+    +-----------------+          Â¦
+Â¦                                                                             Â¦
 +-----------------------------------------------------------------------------+
 ```
 
 
-## ?? Quick Start
+## ğŸš€ Quick Start
 
 ### Prerequisites
 
-* **?? Docker & Docker Compose**: Version 20.10+ recommended
-* **?? 10GB RAM**: Minimum for running all three services
-* **?? 15GB Disk Space**: For containers, databases, and file storage
-* **?? Network Access**: For remote API services (optional)
+* **ğŸ³ Docker & Docker Compose**: Version 20.10+ recommended
+* **ğŸ’» 10GB RAM**: Minimum for running all three services
+* **ğŸ’¾ 15GB Disk Space**: For containers, databases, and file storage
+* **ğŸŒ Network Access**: For remote API services (optional)
 
 ### Installation
 
@@ -165,12 +165,12 @@ A comprehensive, containerized malware analysis platform built with a microservi
 6. **Access the Interface**
 
 ```
-?? Web Interface:      http://0.0.0.0:8080
-?? Container Health:   http://0.0.0.0:8080/containers
-?? Service Status:     http://0.0.0.0:8080/api/containers/health
+ğŸŒ Web Interface: http://0.0.0.0:8080
+ğŸ“¦ Container Health: http://0.0.0.0:8080/containers
+ğŸ“¡ Service Status: http://0.0.0.0:8080/api/containers/health
 ```
 
-## ?? Configuration
+## âš™ï¸ Configuration
 
 
 Create `.env` or modify and resave the .env.example file in the project root as .env:
@@ -237,16 +237,16 @@ orchestrator:
 ```
 
 
-## ????? Usage Guide
+## ğŸ§‘â€ğŸ’»Usage Guide
 
-### ?? Basic Analysis Workflow
+### ğŸ§ª Basic Analysis Workflow
 
-1. **Upload Sample** ???
-2. **Automatic Analysis** ??
-3. **Review Results** ??
-4. **Generate Intelligence** ??
+1. **Upload Sample** ğŸ—‚ï¸
+2. **Automatic Analysis** ğŸ”
+3. **Review Results** ğŸ“„
+4. **Generate Intelligence** ğŸ§ 
 
-### ??? Container Service Management
+### ğŸ› ï¸ Container Service Management
 
 Access the container management page (`/containers`) to:
 
@@ -256,7 +256,7 @@ Access the container management page (`/containers`) to:
 - **Service Logs**: Access container-specific logging
 - **Health Checks**: Automated service availability monitoring
 
-### ??? Antivirus Engine Management
+### ğŸ›¡ï¸ Antivirus Engine Management
 
 Access the AV management page to:
 
@@ -265,7 +265,7 @@ Access the AV management page to:
 - **Check Health**: Monitor container service status
 - **Update Signatures**: Refresh AV definitions
 
-### ?? YARA Rule Management
+### ğŸ§µ YARA Rule Management
 
 The containerized YARA service provides:
 
@@ -275,7 +275,7 @@ The containerized YARA service provides:
 - **Rule Validation**: Graceful handling of rule compilation errors
 - **Health Monitoring**: Dedicated YARA service status tracking
 
-### ?? String & Entropy Analysis
+### ğŸ”¡ String & Entropy Analysis
 
 Enhanced analysis capabilities:
 
@@ -285,7 +285,7 @@ Enhanced analysis capabilities:
 - **Packed Detection**: Automatic identification of packed/encrypted content
 - **Extraction Settings**: Control length limits and filters
 
-## ?? API Reference
+## ğŸ“š API Reference
 
 ### Container Management
 
@@ -360,11 +360,11 @@ POST /api/reports/generate
 GET /api/reports/download/{filename}
 ```
 
-## ?? Adding New AV Engines
+## ğŸ§© Adding New AV Engines
 
 ### Coming Soon
 
-## ?? Monitoring & Maintenance
+## ğŸ“ˆ Monitoring & Maintenance
 
 ### Health Monitoring
 
@@ -418,11 +418,11 @@ sudo docker-compose restart clamav-scanner
 sudo docker-compose restart orchestrator
 ```
 
-## ??? Troubleshooting
+## ğŸ› ï¸ Troubleshooting
 
 ### Common Issues
 
-**?? Container Won't Start**
+**ğŸ³ Container Won't Start**
 ```bash
 # Check container logs for specific service
 sudo docker-compose logs orchestrator
@@ -438,7 +438,7 @@ netstat -tulpn | grep :5000  # ClamAV
 systemctl status docker
 ```
 
-**?? Container Communication Failed**
+** ğŸ”Œ Container Communication Failed**
 
 ```bash
 # Test inter-container connectivity
@@ -452,7 +452,7 @@ sudo docker network inspect primal-v1_malware-analysis
 sudo docker-compose config
 ```
 
-**?? YARA Service Issues**
+**ğŸ§µ YARA Service Issues**
 
 ```bash
 # Check YARA rule compilation
@@ -468,7 +468,7 @@ curl http://localhost:5001/health
 sudo docker-compose exec yara-scanner ls -la /app/rules
 ```
 
-**?? ClamAV Issues**
+** ğŸ¦  ClamAV Issues**
 
 ```bash
 # Update signatures manually
@@ -481,7 +481,7 @@ sudo docker-compose restart clamav-scanner
 sudo docker-compose exec clamav-scanner ps aux | grep clam
 ```
 
-**??? Database Issues**
+** ğŸ—„ï¸ Database Issues**
 
 ```bash
 # Reinitialize database
@@ -493,36 +493,36 @@ analyzer.init_database()
 
 ### Performance Optimization
 
-* **?? Memory Usage**
+* **ğŸ“ˆ Memory Usage**
 - Increase Docker memory limit in Docker Desktop (minimum 10GB for all services)
 - Adjust container resource limits in docker-compose.yml
 - Monitor per-service usage with `docker stats`
 - YARA container needs higher memory allocation for rule compilation
 
-* **? Startup Performance**
+* **âš¡ Startup Performance**
 - YARA service compiles rules independently, allowing orchestrator to start immediately
 - Use `.dockerignore` to exclude unnecessary files
 - Pre-compile YARA rules in container build process for production
 
-* **?? Disk Space**
+* **ğŸ’¾ Disk Space**
 - Regular cleanup: `sudo docker system prune`
 - Archive old analysis results
 - Use tmpfs for temporary scan files
 - Monitor shared volume usage
 
-* **?? Network Performance**
+* **ğŸŒ Network Performance**
 - Use local DNS resolution for containers
 - Optimize shared volume configuration  
 - Consider dedicated Docker networks for high-throughput scenarios
 
 ### Service Recovery
 
-* **?? Automatic Recovery**
+* **ğŸ¤– Automatic Recovery**
 - Health checks automatically restart failed containers
 - Orchestrator handles service unavailability gracefully
 - Failed analyses can be re-queued when services recover
 
-* **?? Manual Recovery**
+* **ğŸ”„ Manual Recovery**
 
 ```bash
 # Restart all services
@@ -536,7 +536,7 @@ sudo docker-compose build yara-scanner
 sudo docker-compose up -d yara-scanner
 ```
 
-## ?? Contributing
+## ğŸ¤ Contributing
 
 Please feel free to grab a copy and make modifications, or suggest enhancements we can add!
 
@@ -573,30 +573,31 @@ sudo docker-compose exec orchestrator python -m pytest
 sudo docker-compose exec orchestrator curl http://yara-scanner:5001/health
 ```
 
-## ?? License
+## ğŸ“œ License
 
 This project is licensed under the MIT License.
 
-## ?? Acknowledgments
+## ğŸ™ Acknowledgments
 
-* **YARA Project** ??
-* **ClamAV Team** ??
-* **VirusTotal** ???
-* **Hybrid Analysis** ??
-* **MetaDefender** ??
-* **Flask Community** ??
-* **Docker Community** ??
+* **YARA Project** ğŸ§µ
+* **ClamAV Team** ğŸ¦ 
+* **VirusTotal** ğŸ›¡ï¸
+* **Hybrid Analysis** ğŸ§ª
+* **MetaDefender** ğŸ”
+* **Flask Community** ğŸ
+* **Docker Community** ğŸ³
+* **Claude.AI** 
 
-## ?? To-Do
+## ğŸ“ To-Do
 
-* Add more AV engines ??
-* Integrate dynamic analysis ??
-* Use ML-based detection ??
-* Enable distributed scanning ??
-* Build centralized API gateway ??
+* Add more AV engines âš™ï¸
+* Integrate dynamic analysis ğŸ”„
+* Use ML-based detection ğŸ§ 
+* Enable distributed scanning ğŸŒ
+* Build centralized API gateway ğŸšª
 
 ---
 
-**?? PRIMAL v1.0** — Empowering security researchers with scalable, containerized malware analysis capabilities.
+**ğŸ”¬ PRIMAL v1.0** â€” Empowering security researchers with scalable, containerized malware analysis capabilities.
 
-*Built with ?? for the cybersecurity community*
+*Built with â¤ï¸ for the cybersecurity community*
