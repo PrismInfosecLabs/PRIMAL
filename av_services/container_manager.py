@@ -991,10 +991,11 @@ class ContainerAVManager:
                     if response.status_code == 200:
                         overview_data = response.json()
                         threat_score = overview_data.get('threat_score')
-                        state = overview_data.get('state', '')
-                        print(f"DEBUG: threat_score: {threat_score}, state: {state}")
+                        verdict = overview_data.get('verdict')
+
+                        print(f"DEBUG: threat_score: {threat_score}, verdict: {verdict}")
                             
-                        if threat_score is not None:
+                        if (verdict == "no specific threat" and threat_score is None) or (threat_score is not None):
                             print("DEBUG: Returning completed analysis!")
                             return self._format_hybrid_analysis_overview_result(overview_data, 0, engine['name'])
 

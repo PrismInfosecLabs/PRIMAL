@@ -3,7 +3,8 @@ FROM python:3.10-slim
 # Disable pip's new "externally managed environment" restriction
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
-# Install system dependencies
+
+# Install system dependencies (YARA removed - now handled by separate container)
 RUN apt-get update && apt-get install -y \
     libssl-dev \
     libffi-dev \
@@ -11,63 +12,37 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libmagic1 \
     curl \
-    git \
-    autoconf \
-    libtool \
-    libjansson-dev \
-    libssl-dev \
-    libmagic-dev \
-    pkg-config \
-    bison \
-    flex \
     && rm -rf /var/lib/apt/lists/*
 
-# Build YARA from source with math module
-RUN git clone --recursive https://github.com/VirusTotal/yara.git /tmp/yara && \
-    cd /tmp/yara && \
-    ./bootstrap.sh && \
-    ./configure --enable-magic --enable-cuckoo --with-crypto && \
-    make && \
-    make install && \
-    ldconfig && \
-    cd / && \
-    rm -rf /tmp/yara
-
 # Create user with UID 1000 to match host user (fixes permission issues)
-# Use different GID to avoid conflicts with Ubuntu 24.04 system groups
-RUN groupadd -g 1001 appuser && useradd -u 1000 -g 1001 -s /bin/bash -m appuser
+RUN groupadd -g 1000 appuser && useradd -u 1000 -g 1000 -s /bin/bash -m appuser
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements first (for better caching)
 COPY requirements.orchestrator.txt .
-
-# Install Python packages with explicit pip upgrade and virtual environment bypass
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir --break-system-packages -r requirements.orchestrator.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements.orchestrator.txt
 
 # Copy application files
 COPY app.py .
 COPY config/ config/
 COPY services/ services/
 COPY api/ api/
-COPY models/ models/
-COPY utils/ utils/
 COPY static/ static/
 COPY av_services/ av_services/
+COPY yara_services/ yara_services/
 
 # Create internal directories and set ownership
-RUN mkdir -p uploads reports rules data logs shared-files && \
+RUN mkdir -p uploads reports data logs shared-files && \
     chown -R appuser:appuser /app 
 
 # Copy simplified entrypoint that doesn't try to fix permissions
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && \
-    chown appuser:appuser /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Switch to user with matching UID
-USER 1000:1001
+USER 1000:1000
 
 # Expose port
 EXPOSE 8080

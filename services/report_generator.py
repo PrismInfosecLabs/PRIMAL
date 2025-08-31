@@ -86,7 +86,7 @@ class ReportGenerator:
     def _get_files_with_analysis_summary(self, cursor, where_clause, params):
         """Get files with analysis summary data"""
         query = f'''
-            SELECT f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, 
+            SELECT f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, 
                    f.upload_time, f.status, ar.result_data,
                    COUNT(DISTINCT ym.id) as yara_matches,
                    COUNT(DISTINCT CASE WHEN av.status = 'infected' THEN av.id END) as av_detections,
@@ -97,7 +97,7 @@ class ReportGenerator:
             LEFT JOIN av_results av ON f.id = av.file_id
             LEFT JOIN extracted_strings es ON f.id = es.file_id
             {where_clause}
-            GROUP BY f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, 
+            GROUP BY f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, 
                      f.upload_time, f.status, ar.result_data
             ORDER BY f.upload_time DESC
         '''
@@ -220,6 +220,7 @@ class ReportGenerator:
                 'file_id': file_id,
                 'filename': f['filename'],
                 'sha256': f['sha256'],
+                'sha1': f['sha1'],
                 'md5': f['md5'],
                 'size': f['size'],
                 'file_type': f['file_type'],

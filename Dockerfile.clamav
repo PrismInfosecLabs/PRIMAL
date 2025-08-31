@@ -18,10 +18,7 @@ WORKDIR /app
 
 # Copy requirements for ClamAV service
 COPY requirements.clamav.txt .
-
-# Install Python packages with explicit pip upgrade and virtual environment bypass
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir --break-system-packages -r requirements.clamav.txt
+RUN pip install --no-cache-dir --break-system-packages  -r requirements.clamav.txt
 
 # Copy ClamAV service files
 COPY clamav_service.py .

@@ -208,6 +208,7 @@ def browse_files():
                 'filename': file['filename'],
                 'sha256': file['sha256'],
                 'sha256_short': file['sha256'][:16] + '...',
+                'sha1': file['sha1'],
                 'md5': file['md5'],
                 'size': file['size'],
                 'file_type': file['file_type'],
@@ -256,7 +257,7 @@ def list_all_files():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, f.upload_time, f.status,
+            SELECT f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, f.upload_time, f.status,
                    COUNT(DISTINCT ym.id) as yara_matches,
                    COUNT(DISTINCT CASE WHEN av.status = 'infected' THEN av.id END) as av_detections,
                    COUNT(DISTINCT es.id) as extracted_strings
@@ -278,6 +279,7 @@ def list_all_files():
                 'filename': file['filename'],
                 'sha256': file['sha256'],
                 'sha256_short': file['sha256'][:16] + '...',
+                'sha1': file['sha1'],
                 'md5': file['md5'],
                 'size': file['size'],
                 'file_type': file['file_type'],
@@ -516,7 +518,7 @@ def search_files():
             where_clause = "WHERE f.filename LIKE ?"
             params = [f'%{query}%']
         elif search_type == 'hash':
-            where_clause = "WHERE f.sha256 LIKE ? OR f.md5 LIKE ?"
+            where_clause = "WHERE f.sha256 LIKE ? OR f.md5 LIKE ? OR f.sha1 LIKE ?"
             params = [f'%{query}%', f'%{query}%']
         elif search_type == 'threat':
             where_clause = """WHERE EXISTS (
@@ -526,13 +528,13 @@ def search_files():
             params = [f'%{query}%']
         else:  # 'all'
             where_clause = """WHERE (
-                f.filename LIKE ? OR f.sha256 LIKE ? OR f.md5 LIKE ? OR
+                f.filename LIKE ? OR f.sha256 LIKE ? OR f.md5 LIKE ? OR f.sha1 LIKE ? OR
                 EXISTS (SELECT 1 FROM av_results av WHERE av.file_id = f.id AND av.threat_name LIKE ?)
             )"""
             params = [f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%']
         
         cursor.execute(f'''
-            SELECT f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, f.upload_time, f.status,
+            SELECT f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, f.upload_time, f.status,
                    COUNT(DISTINCT ym.id) as yara_matches,
                    COUNT(DISTINCT CASE WHEN av.status = 'infected' THEN av.id END) as av_detections
             FROM files f 

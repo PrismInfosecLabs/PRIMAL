@@ -1,8 +1,48 @@
 import json
 import os
 import sys
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash
+
+def setup_logging(app):
+    """Configure application logging"""
+    if not app.debug:  # Only in production
+        # Ensure logs directory exists
+        logs_dir = '/app/logs'
+        os.makedirs(logs_dir, exist_ok=True)
+        
+        # Main application log
+        file_handler = RotatingFileHandler(
+            os.path.join(logs_dir, 'malware_analyzer.log'),
+            maxBytes=10240000,  # 10MB
+            backupCount=10
+        )
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        
+        # Analysis-specific log
+        analysis_handler = RotatingFileHandler(
+            os.path.join(logs_dir, 'analysis.log'),
+            maxBytes=5242880,  # 5MB
+            backupCount=5
+        )
+        analysis_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        ))
+        analysis_handler.setLevel(logging.INFO)
+        
+        # Create analysis logger
+        analysis_logger = logging.getLogger('analysis')
+        analysis_logger.addHandler(analysis_handler)
+        analysis_logger.setLevel(logging.INFO)
+        
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Malware analyzer startup')
 
 def ensure_directories_with_debug():
     """Ensure all required directories exist with detailed debugging"""
@@ -191,6 +231,7 @@ def get_results(file_id):
         'id': file_result['id'],
         'filename': file_result['filename'],
         'sha256': file_result['sha256'],
+        'sha1': file_result['sha1'],  # Ensure SHA1 is included
         'md5': file_result['md5'],
         'size': file_result['size'],
         'file_type': file_result['file_type'],
@@ -198,13 +239,21 @@ def get_results(file_id):
         'status': file_result['status']
     }
     
-    # Format analysis data
+    # Format analysis data - Enhanced to ensure entropy is available
     analysis_data = {}
     if analysis_result and analysis_result['result_data']:
         try:
             analysis_data = json.loads(analysis_result['result_data'])
-        except:
+            # Debug print to ensure entropy analysis is present
+            if 'entropy_analysis' in analysis_data:
+                print(f"DEBUG: Entropy analysis found for file {file_id}: {analysis_data['entropy_analysis'].get('overall_entropy', 'N/A')}")
+            else:
+                print(f"DEBUG: No entropy analysis found for file {file_id}")
+        except json.JSONDecodeError as e:
+            print(f"DEBUG: Failed to parse analysis data for file {file_id}: {e}")
             analysis_data = {}
+    else:
+        print(f"DEBUG: No analysis result data found for file {file_id}")
     
     # Format YARA matches
     yara_data = []
@@ -442,6 +491,10 @@ def string_config_page():
     """String analysis configuration management page"""
     return render_template('string_config.html')
 
+@app.route('/containers')
+def containers_page():
+    """Container monitoring dashboard"""
+    return render_template('containers.html')
 # =============================================================================
 # DEBUG ROUTES (Consider moving to separate debug blueprint in future)
 # =============================================================================
@@ -454,7 +507,7 @@ def debug_columns():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, 
+            SELECT f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, 
                    f.upload_time, f.status, ar.result_data,
                    COUNT(DISTINCT ym.id) as yara_matches,
                    COUNT(DISTINCT CASE WHEN av.status = 'infected' THEN av.id END) as av_detections,
@@ -464,7 +517,7 @@ def debug_columns():
             LEFT JOIN yara_matches ym ON f.id = ym.file_id
             LEFT JOIN av_results av ON f.id = av.file_id
             LEFT JOIN extracted_strings es ON f.id = es.file_id
-            GROUP BY f.id, f.filename, f.sha256, f.md5, f.size, f.file_type, 
+            GROUP BY f.id, f.filename, f.sha256, f.md5, f.sha1, f.size, f.file_type, 
                      f.upload_time, f.status, ar.result_data
             ORDER BY f.upload_time DESC
             LIMIT 1
@@ -518,6 +571,6 @@ if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     port = int(os.environ.get('FLASK_PORT', 8080))
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
-    
+    setup_logging(app)
     print(f"Starting Flask app on {host}:{port} (debug={debug_mode})")
     app.run(host=host, port=port, debug=debug_mode)

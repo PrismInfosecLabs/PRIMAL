@@ -78,7 +78,7 @@ DeviceFileEvents
         # Generate file hash query
         queries['file_hash'] = self.kql_templates['file_hash'].format(
             sha256=file_data['sha256'],
-            sha1=analysis_data.get('file_info', {}).get('sha1', ''),
+            sha1=file_data['sha1'],
             md5=file_data['md5'],
             filename=file_data['filename']
         )
@@ -181,10 +181,11 @@ class YaraRuleGenerator:
 {{
     meta:
         description = "{description}"
-        author = "Personal Malware Lab"
+        author = "PRIMAL"
         date = "{date}"
         version = "1.0"
         hash_md5 = "{md5}"
+        hash_sha1 = "{sha1}"
         hash_sha256 = "{sha256}"
         file_type = "{file_type}"
         file_size = {file_size}
@@ -212,6 +213,7 @@ class YaraRuleGenerator:
             description=description,
             date=date,
             md5=file_data['md5'],
+            sha1=file_data['sha1'],
             sha256=file_data['sha256'],
             file_type=file_data['file_type'],
             file_size=file_data['size'],
@@ -360,6 +362,7 @@ class IOCGenerator:
         """Generate file-based indicators"""
         return {
             'md5': file_data['md5'],
+            'sha1': file_data['sha1'],
             'sha256': file_data['sha256'],
             'filename': file_data['filename'],
             'file_size': file_data['size'],
@@ -397,9 +400,11 @@ class IOCGenerator:
         return {
             'metadata': {
                 'generated_at': datetime.now().isoformat(),
-                'source': 'Personal Malware Lab',
+                'source': 'PRIMAL',
                 'filename': file_data['filename'],
-                'sha256': file_data['sha256']
+                'sha256': file_data['sha256'],
+                'sha1': file_data['sha1']
+
             },
             'indicators': iocs
         }
@@ -448,7 +453,9 @@ class IOCGenerator:
                     'id': f"file--{file_data['sha256'][:36]}",
                     'hashes': {
                         'MD5': file_data['md5'],
+                        'SHA-1': file_data['sha1'],
                         'SHA-256': file_data['sha256']
+
                     },
                     'size': file_data['size'],
                     'name': file_data['filename']
@@ -468,6 +475,12 @@ class IOCGenerator:
                         'category': 'Payload delivery',
                         'type': 'md5',
                         'value': file_data['md5'],
+                        'to_ids': True
+                    },
+                    {
+                        'category': 'Payload delivery', 
+                        'type': 'sha1',
+                        'value': file_data['sha1'],
                         'to_ids': True
                     },
                     {

@@ -57,7 +57,7 @@ class AntivirusScanner:
     
     def initialize_engines(self):
         """Initialize and check available AV engines"""
-        print("?? Initializing antivirus engines...")
+        print("Initializing antivirus engines...")
         
         # Use container manager's initialization
         self.container_manager.initialize_engines()
@@ -80,7 +80,7 @@ class AntivirusScanner:
         Returns:
             dict: Scan results from all engines
         """
-        print(f"?? Starting AV scan of {file_path}")
+        print(f"Starting AV scan of {file_path}")
         
         # Use container manager for actual scanning
         results = self.container_manager.scan_file(file_path, engines_to_use)
@@ -88,7 +88,7 @@ class AntivirusScanner:
         # Add any additional processing or validation here
         processed_results = self._process_scan_results(results)
         
-        print(f"? AV scan completed. {len(processed_results)} engines scanned")
+        print(f"AV scan completed. {len(processed_results)} engines scanned")
         return processed_results
     
     def _process_scan_results(self, results):
@@ -137,7 +137,7 @@ class AntivirusScanner:
         # Re-initialize engines
         self.initialize_engines()
         
-        print("?? AV scanner configuration updated")
+        print("AV scanner configuration updated")
     
     def get_engine_info(self):
         """Get information about available engines"""

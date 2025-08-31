@@ -3,7 +3,6 @@ Services package for the malware analysis lab
 Contains all business logic and analysis components
 """
 
-from .yara_manager import YaraManager
 from .string_extractor import ConfigurableStringExtractor, StringAnalysisConfig
 from .av_scanner import AntivirusScanner
 from .report_generator import ReportGenerator
@@ -13,11 +12,10 @@ from .threat_hunting import (
     IOCGenerator,
     ThreatHuntingService
 )
+from .entropy_analyzer import EntropyAnalyzer 
 from .malware_analyzer import MalwareAnalyzer, FileAnalyzer
 
 __all__ = [
-    # YARA management
-    'YaraManager',
     
     # String analysis
     'ConfigurableStringExtractor',
@@ -37,5 +35,8 @@ __all__ = [
     
     # Main analysis
     'MalwareAnalyzer',
-    'FileAnalyzer'
+    'FileAnalyzer',
+
+    #Entropy analysis
+    'EntropyAnalyzer'
 ]

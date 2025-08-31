@@ -30,11 +30,46 @@ services:
           cpus: '0.5'
     expose:
       - "5000"
-    # Add security options for Ubuntu 24.04 compatibility
     security_opt:
       - apparmor:unconfined
-    # Disable user namespace remapping for this container if needed
     userns_mode: "host"
+
+  # YARA container
+  yara-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.yara
+    volumes:
+      - ./rules:/app/rules:ro,nosuid,nodev
+      - shared-files:/app/shared-files:rw,nosuid,nodev
+      - yara-logs:/app/logs:rw,nosuid,nodev
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    networks:
+      - malware-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 180s  # YARA needs more time for rule compilation
+    deploy:
+      resources:
+        limits:
+          memory: 3G  # YARA rule compilation can be memory intensive
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    expose:
+      - "5001"
+    security_opt:
+      - apparmor:unconfined
+    userns_mode: "host"
+
 
   # Orchestrator
   orchestrator:
@@ -44,16 +79,15 @@ services:
     depends_on:
       clamav-scanner:
         condition: service_healthy
+      yara-scanner:
+        condition: service_healthy
     ports:
       - "8080:8080" 
     volumes:
-      # Use explicit user mapping to handle permission issues
       - ./uploads:/app/uploads:rw,nosuid,nodev
       - ./reports:/app/reports:rw,nosuid,nodev
-      - ./rules:/app/rules:rw,nosuid,nodev
       - ./data:/app/data:rw,nosuid,nodev
       - ./logs:/app/logs:rw,nosuid,nodev
-      - ./test-samples:/app/test-samples:rw,nosuid,nodev
       - ./templates:/app/templates:rw,nosuid,nodev
       - shared-files:/app/shared-files:rw,nosuid,nodev
     environment:
@@ -66,6 +100,7 @@ services:
       - HYBRID_ANALYSIS_API_KEY=${HYBRID_ANALYSIS_API_KEY}
       - METADEFENDER_API_KEY=${METADEFENDER_API_KEY}
       - CLAMAV_URL=http://clamav-scanner:5000
+      - YARA_URL=http://yara-scanner:5001
     networks:
       - malware-analysis
     restart: unless-stopped
@@ -77,20 +112,17 @@ services:
       start_period: 60s
     env_file:
       - .env
-    # Add security options for Ubuntu 24.04 compatibility
     security_opt:
       - apparmor:unconfined
-    # Use host user namespace to avoid permission issues
-    user: "1000:1001"
+    userns_mode: "host"
+
 
 volumes:
   shared-files:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./shared-files
   clamav-db:
+    driver: local
+  yara-logs:
     driver: local
 
 networks:

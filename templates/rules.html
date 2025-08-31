@@ -3,7 +3,10 @@
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center;">
     <h2>📋 YARA Rules Management</h2>
-    <a href="/" class="btn">← Back to Analysis</a>
+    <div class="btn-group">
+        <a href="/containers" class="btn">Container Status</a>
+        <a href="/" class="btn">Back to Analysis</a>
+    </div>
 </div>
 
 {% with messages = get_flashed_messages() %}
@@ -16,55 +19,48 @@
     {% endif %}
 {% endwith %}
 
+<!-- Simple Service Connection Status -->
+<div id="service-connection-status" style="display: none; padding: 10px; border: 1px solid #dc3545; border-radius: 4px; margin: 20px 0; color: #dc3545;">
+    YARA service connection issue - some features may be unavailable.
+</div>
+
 <!-- Rule Statistics -->
-{% if stats %}
-<div style="padding: 15px; border-radius: 4px; margin: 20px 0;">
+<div style="padding: 15px; border-radius: 4px; margin: 20px 0;" id="rule-stats-container">
     <h3 style="margin-top: 0;">📊 Rule Statistics</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        <div>
-            <strong>Total Rule Files:</strong> {{ stats.total_files }}<br>
-            <strong>Directories:</strong> {{ stats.by_directory|length }}
-        </div>
-        <div>
-            <strong>Top Directories:</strong><br>
-            {% if stats and stats.by_directory %}
-              {% set top_dirs = stats.by_directory.items() | list %}
-              {% for directory, count in top_dirs[:5] %}
-                {{ directory }}: {{ count }} files
-            	<small>{{ directory }}: {{ count }} files</small><br>
-              {% endfor %}
-            {% else %}
-              <p>No directory statistics available.</p>
-            {% endif %}
-        </div>
+    <div id="rule-stats-content">
+        <div style="text-align: center; padding: 20px;">Loading statistics from YARA service...</div>
     </div>
 </div>
-{% endif %}
 
 <!-- Upload New Rule -->
 <div style="padding: 15px; border-radius: 4px; margin: 20px 0;">
-    <h3 style="margin-top: 0;">📁 Upload New YARA Rule</h3>
-    <form action="/rules/upload" method="post" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 200px auto; gap: 10px; align-items: end;">
-        <div>
-            <label for="rule_file"><strong>Select Rule File:</strong></label><br>
-            <input type="file" name="rule_file" id="rule_file" accept=".yar,.yara" required style="margin-top: 5px; width: 100%;">
+    <h3 style="margin-top: 0;">Upload New YARA Rule</h3>
+    <div id="upload-container">
+        <form action="/rules/upload" method="post" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 200px auto; gap: 10px; align-items: end;">
+            <div>
+                <label for="rule_file"><strong>Select Rule File:</strong></label><br>
+                <input type="file" name="rule_file" id="rule_file" accept=".yar,.yara" required style="margin-top: 5px; width: 100%;">
+            </div>
+            
+            <div>
+                <label for="subdirectory"><strong>Subdirectory:</strong></label><br>
+                <input type="text" name="subdirectory" id="subdirectory" 
+                       placeholder="e.g., custom" 
+                       style="padding: 5px; margin-top: 5px; width: 100%;">
+            </div>
+            
+            <button type="submit" class="btn" id="upload-btn">&uarr; Upload</button>
+        </form>
+        <div id="upload-warning" style="display: none; margin-top: 10px; padding: 10px; border: 1px solid #dc3545; border-radius: 4px; color: #dc3545;">
+            YARA service is not available. Rule upload may fail.
         </div>
-        
-        <div>
-            <label for="subdirectory"><strong>Subdirectory:</strong></label><br>
-            <input type="text" name="subdirectory" id="subdirectory" 
-                   placeholder="e.g., custom" 
-                   style="padding: 5px; margin-top: 5px; width: 100%;">
-        </div>
-        
-        <button type="submit" class="btn">📤 Upload</button>
-    </form>
+    </div>
 </div>
 
 <!-- Controls -->
 <div style="display: flex; gap: 10px; margin: 20px 0; align-items: center; flex-wrap: wrap;">
-    <form action="/rules/reload" method="post" style="display: inline;">
-        <button type="submit" class="btn">🔄 Reload Rules</button>
+    <form action="/rules/reload" method="post" style="display: inline;" id="reload-form">
+        <button type="submit" class="btn" id="reload-btn">?? Reload Rules</button>
     </form>
     
     <div style="display: flex; gap: 10px; flex: 1; min-width: 300px;">
@@ -83,10 +79,28 @@
     </div>
 </div>
 
+<!-- Service Status Warning -->
+<div id="service-warning" style="display: none; padding: 15px; border: 2px solid #dc3545; border-radius: 8px; margin: 20px 0; color: #dc3545;">
+    <h4 style="margin-top: 0;">?? YARA Service Unavailable</h4>
+    <p>The YARA container service is not responding. This may affect:</p>
+    <ul>
+        <li>Rule loading and browsing</li>
+        <li>Rule content viewing</li>
+        <li>Rule reloading functionality</li>
+        <li>File scanning with YARA rules</li>
+    </ul>
+    <p><strong>Troubleshooting:</strong></p>
+    <ul>
+        <li>Check if the YARA container is running: <code>docker-compose ps yara-scanner</code></li>
+        <li>Check container logs: <code>docker-compose logs yara-scanner</code></li>
+        <li>Restart containers: <code>docker-compose restart yara-scanner</code></li>
+    </ul>
+</div>
+
 <!-- Loading indicator -->
 <div id="loading" style="display: none; text-align: center; padding: 20px;">
     <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    Loading rules...
+    Loading rules from YARA service...
 </div>
 
 <!-- Rules container -->
@@ -104,7 +118,7 @@
     <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto; background: #1e164d;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 id="modal-title">Rule Content</h3>
-            <button onclick="closeModal()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+            <button onclick="closeModal()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">? Close</button>
         </div>
         <div id="modal-content">
             <pre style="padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 60vh;"><code id="modal-code"></code></pre>
@@ -117,11 +131,13 @@ let currentPage = 1;
 let currentSearch = '';
 let currentDirectory = 'all';
 let currentPerPage = 20;
+let yaraServiceAvailable = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadDirectories();
     loadRules();
+    loadRuleStats();
     
     // Set up search with debounce
     let searchTimeout;
@@ -158,38 +174,95 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function showServiceError(message) {
+    const statusDiv = document.getElementById('service-connection-status');
+    if (statusDiv) {
+        statusDiv.textContent = message;
+        statusDiv.style.display = 'block';
+    }
+}
+
+function hideServiceError() {
+    const statusDiv = document.getElementById('service-connection-status');
+    if (statusDiv) {
+        statusDiv.style.display = 'none';
+    }
+}
+
+async function loadRuleStats() {
+    const statsContent = document.getElementById('rule-stats-content');
+    
+    try {
+        const response = await fetch('/api/rules/stats');
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.statistics) {
+                const stats = data.statistics;
+                
+                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+                
+                html += '<div>';
+                html += `<strong>Total Rule Files:</strong> ${stats.total_files || 0}<br>`;
+                html += `<strong>Skipped Files:</strong> ${stats.skipped_files || 0}<br>`;
+                html += `<strong>Directories:</strong> ${stats.by_directory ? Object.keys(stats.by_directory).length : 0}`;
+                html += '</div>';
+                
+                if (stats.by_directory) {
+                    html += '<div><strong>Rules by Directory:</strong><br>';
+                    const entries = Object.entries(stats.by_directory);
+                    entries.slice(0, 5).forEach(([dir, count]) => {
+                        html += `<small>${dir}: ${count} files</small><br>`;
+                    });
+                    if (entries.length > 5) {
+                        html += `<small>... and ${entries.length - 5} more</small><br>`;
+                    }
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                
+                if (data.service_type === 'containerized') {
+                    html += '<p><small><em>Statistics provided by containerized YARA service</em></small></p>';
+                }
+                
+                statsContent.innerHTML = html;
+            } else {
+                statsContent.innerHTML = '<p>No statistics available from YARA service</p>';
+            }
+        } else {
+            statsContent.innerHTML = '<p>Unable to load statistics (service may be unavailable)</p>';
+        }
+    } catch (error) {
+        console.error('Error loading rule stats:', error);
+        statsContent.innerHTML = '<p>Error loading statistics from YARA service</p>';
+    }
+}
+
 async function loadDirectories() {
     try {
         const response = await fetch('/api/rules/directories');
         
-        // KEY FIX: Check if response is OK and content-type is JSON
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            console.error('Non-JSON response for directories:', await response.text());
-            return; // Fail silently to prevent errors
-        }
-        
-        const directories = await response.json();
-        
-        const select = document.getElementById('directory-filter');
-        if (select && Array.isArray(directories)) {
-            // Clear existing options except "All"
-            select.innerHTML = '<option value="all">All Directories</option>';
-            
-            directories.forEach(dir => {
-                const option = document.createElement('option');
-                option.value = dir;
-                option.textContent = dir;
-                select.appendChild(option);
-            });
+        if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const directories = await response.json();
+                
+                const select = document.getElementById('directory-filter');
+                if (select && Array.isArray(directories)) {
+                    select.innerHTML = '<option value="all">All Directories</option>';
+                    
+                    directories.forEach(dir => {
+                        const option = document.createElement('option');
+                        option.value = dir;
+                        option.textContent = dir;
+                        select.appendChild(option);
+                    });
+                }
+            }
         }
     } catch (error) {
         console.error('Error loading directories:', error);
-        // Don't show error to user for this non-critical function
     }
 }
 
@@ -212,32 +285,30 @@ async function loadRules() {
         
         const response = await fetch(`/api/rules?${params}`);
         
-        // KEY FIX: Check response status and content-type
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            const htmlResponse = await response.text();
-            console.error('Non-JSON response for rules:', htmlResponse);
-            throw new Error('Server returned HTML instead of JSON (check server logs)');
+            throw new Error('Service returned non-JSON response');
         }
         
         const data = await response.json();
         
-        // Handle API errors gracefully
         if (data.error) {
             throw new Error(data.error);
         }
         
         displayRules(data.rules || []);
         displayPagination(data.pagination || {});
+        hideServiceError();
         
     } catch (error) {
         console.error('Error loading rules:', error);
+        showServiceError(`Error loading rules: ${error.message}`);
         if (rulesContainer) {
-            rulesContainer.innerHTML = `<p style="color: red;">Error loading rules: ${error.message}</p>`;
+            rulesContainer.innerHTML = '<p>Unable to load rules from YARA service. Check container status if needed.</p>';
         }
     } finally {
         if (loadingDiv) loadingDiv.style.display = 'none';
@@ -264,8 +335,9 @@ function displayRules(rules) {
                     ${rule.size || 0} bytes<br>
                     ~${rule.estimated_rules || 0} rules
                 </div>
-                <button class="view-content-btn" onclick="viewRuleContent('${escapeHtml(rule.relative_path || '')}', '${escapeHtml(rule.filename || '')}')">
-                    👁️ View Content
+                <button class="view-content-btn" onclick="viewRuleContent('${escapeHtml(rule.relative_path || '')}', '${escapeHtml(rule.filename || '')}')"
+                        ${!yaraServiceAvailable ? 'disabled style="opacity: 0.5;"' : ''}>
+                    &check; View Content
                 </button>
             </div>
         </div>
@@ -286,10 +358,8 @@ function displayPagination(pagination) {
     
     let html = '<div>';
     
-    // Previous button
-    html += `<button class="pagination-btn" ${!pagination.has_prev ? 'disabled' : ''} onclick="goToPage(${pagination.page - 1})">« Previous</button>`;
+    html += `<button class="pagination-btn" ${!pagination.has_prev ? 'disabled' : ''} onclick="goToPage(${pagination.page - 1})">&laquo; Previous</button>`;
     
-    // Page numbers
     const start = Math.max(1, pagination.page - 2);
     const end = Math.min(pagination.pages, pagination.page + 2);
     
@@ -307,9 +377,7 @@ function displayPagination(pagination) {
         html += `<button class="pagination-btn" onclick="goToPage(${pagination.pages})">${pagination.pages}</button>`;
     }
     
-    // Next button
-    html += `<button class="pagination-btn" ${!pagination.has_next ? 'disabled' : ''} onclick="goToPage(${pagination.page + 1})">Next »</button>`;
-    
+    html += `<button class="pagination-btn" ${!pagination.has_next ? 'disabled' : ''} onclick="goToPage(${pagination.page + 1})">Next &raquo;</button>`;
     html += '</div>';
     html += `<div style="margin-top: 10px; color: #666; font-size: 14px;">
         Showing page ${pagination.page} of ${pagination.pages} (${pagination.total} total rules)
@@ -324,37 +392,41 @@ function goToPage(page) {
 }
 
 async function viewRuleContent(rulePath, filename) {
+    if (!yaraServiceAvailable) {
+        alert('YARA service is not available. Cannot view rule content.');
+        return;
+    }
+    
     const modal = document.getElementById('rule-modal');
     const title = document.getElementById('modal-title');
     const code = document.getElementById('modal-code');
     
     if (title) title.textContent = `Rule: ${filename}`;
-    if (code) code.textContent = 'Loading...';
+    if (code) code.textContent = 'Loading from YARA service...';
     if (modal) modal.style.display = 'block';
     
     try {
         const response = await fetch(`/api/rules/content/${encodeURIComponent(rulePath)}`);
         
-        // KEY FIX: Check response and content-type for rule content too
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Server returned non-JSON response');
+            throw new Error('YARA service returned non-JSON response');
         }
         
         const data = await response.json();
         
         if (data.error) {
-            if (code) code.textContent = `Error: ${data.error}`;
+            if (code) code.textContent = `Error from YARA service: ${data.error}`;
         } else {
             if (code) code.textContent = data.content || 'No content available';
         }
     } catch (error) {
         console.error('Error loading rule content:', error);
-        if (code) code.textContent = `Error loading content: ${error.message}`;
+        if (code) code.textContent = `Error loading content from YARA service: ${error.message}`;
     }
 }
 
@@ -378,4 +450,5 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+
 {% endblock %}

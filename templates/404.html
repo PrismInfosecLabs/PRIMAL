@@ -4,15 +4,23 @@
 
 <H1> 404 - File not found </H1>
 
-
 <div class="nav-links">
-    <a href="/rules" class="btn btn-primary">📋 Manage YARA Rules</a>
-    <a href="/av" class="btn btn-primary">🛡️ Manage Antivirus</a>
+    <a href="/rules" class="btn btn-primary">&#128221; Manage YARA Rules</a>
+    <a href="/av" class="btn btn-primary">&#128737; Manage Antivirus</a>
     <a href="/string-config" class="btn btn-primary">Manage String Config</a>
-    <a href="/threat-hunting" class="btn btn-primary">🎯 Threat Hunting</a>
-    <a href="/reports" class="btn btn-primary">📊 Generate Reports</a>
-    <a href="/browse" class="btn btn-primary">🔍 Browse Results</a>
+    <a href="/threat-hunting" class="btn btn-primary">&#127919; Threat Hunting</a>
+    <a href="/reports" class="btn btn-primary">&#128202; Generate Reports</a>
+    <a href="/browse" class="btn btn-primary">&#128269; Browse Results</a>
 </div>
 
+<div id="results" style="display: none;">
+    <h3>&#128300; Analysis Results</h3>
+    <div id="results-content"></div>
+</div>
+
+<div id="recent-files">
+    <h3>&#128221; Recent Analyses</h3>
+    <div id="file-list"></div>
+</div>
 
 {% endblock %}

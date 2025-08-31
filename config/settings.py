@@ -30,9 +30,9 @@ class Config:
         'hybrid_analysis_api_key': os.environ.get('HYBRID_ANALYSIS_API_KEY', ''),
         'enabled_engines': {
             'clamav': True,
-            'virustotal': True,
-            'hybrid_analysis': True,
-            'metadefender': True
+            'virustotal': False,
+            'hybrid_analysis': False,
+            'metadefender': False
         }
     }
     

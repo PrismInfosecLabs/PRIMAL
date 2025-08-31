@@ -2,27 +2,28 @@
 
 {% block content %}
 <div class="upload-area" onclick="document.getElementById('file-input').click()">
-    <h3>🔍 Drop files here or click to upload</h3>
+    <h3>&#128269; Drop files here or click to upload</h3>
     <p>Files will be analyzed with YARA rules, multi-engine antivirus scanning, and advanced string extraction</p>
     <input type="file" id="file-input" style="display: none;" onchange="uploadFile()">
 </div>
 
 <div class="nav-links">
-    <a href="/rules" class="btn btn-primary">📋 Manage YARA Rules</a>
-    <a href="/av" class="btn btn-primary">🛡️ Manage Antivirus</a>
+    <a href="/rules" class="btn btn-primary">&#128221; Manage YARA Rules</a>
+    <a href="/av" class="btn btn-primary">&#128737; Manage Antivirus</a>
     <a href="/string-config" class="btn btn-primary">Manage String Config</a>
-    <a href="/threat-hunting" class="btn btn-primary">🎯 Threat Hunting</a>
-    <a href="/reports" class="btn btn-primary">📊 Generate Reports</a>
-    <a href="/browse" class="btn btn-primary">🔍 Browse Results</a>
+    <a href="/threat-hunting" class="btn btn-primary">&#127919; Threat Hunting</a>
+    <a href="/reports" class="btn btn-primary">&#128202; Generate Reports</a>
+    <a href="/browse" class="btn btn-primary">&#128270; Browse Results</a>
+    <a href="/containers" class="btn btn-primary">&#128221; Container Management</a>
 </div>
 
 <div id="results" style="display: none;">
-    <h3>🔬 Analysis Results</h3>
+    <h3>&#128300; Analysis Results</h3>
     <div id="results-content"></div>
 </div>
 
 <div id="recent-files">
-    <h3>📋 Recent Analyses</h3>
+    <h3>&#128221; Recent Analyses</h3>
     <div id="file-list"></div>
 </div>
 
@@ -36,7 +37,7 @@ async function uploadFile() {
     const formData = new FormData();
     formData.append('file', file);
     
-    document.getElementById('results-content').innerHTML = '<p>🔄 Analyzing file with YARA rules, multi-engine antivirus scanning, and extracting strings...</p>';
+    document.getElementById('results-content').innerHTML = '<p>Analyzing file with YARA rules, multi-engine antivirus scanning, and extracting strings...</p>';
     document.getElementById('results').style.display = 'block';
     
     try {
@@ -48,26 +49,24 @@ async function uploadFile() {
         const result = await response.json();
         
         if (result.success) {
-            displayResults(result.results);
+            displayResults(result.results, result.file_id);
             loadRecentFiles();
         } else {
-            document.getElementById('results-content').innerHTML = `<p class="alert alert-error">❌ Error: ${result.error}</p>`;
+            document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${result.error}</p>`;
         }
     } catch (error) {
-        document.getElementById('results-content').innerHTML = `<p class="alert alert-error">❌ Error: ${error.message}</p>`;
+        document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${error.message}</p>`;
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const uploadArea = document.querySelector('.upload-area');
     
-    // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         uploadArea.addEventListener(eventName, preventDefaults, false);
         document.body.addEventListener(eventName, preventDefaults, false);
     });
     
-    // Highlight drop area when item is dragged over it
     ['dragenter', 'dragover'].forEach(eventName => {
         uploadArea.addEventListener(eventName, highlight, false);
     });
@@ -76,7 +75,6 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadArea.addEventListener(eventName, unhighlight, false);
     });
     
-    // Handle dropped files
     uploadArea.addEventListener('drop', handleDrop, false);
     
     function preventDefaults(e) {
@@ -123,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
-                displayResults(result.results);
+                displayResults(result.results, result.file_id);
                 loadRecentFiles();
             } else {
                 document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${result.error}</p>`;
@@ -134,94 +132,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function displayResults(results) {
+function displayResults(results, file_id) {
     const info = results.file_info;
     const yaraMatches = results.yara_matches || [];
     const avResults = results.av_results || {};
     const stringAnalysis = results.string_analysis || {};
+    const entropyAnalysis = results.entropy_analysis || {};
     
-    // Enhanced AV Results Display
-    let avHtml = '<h4>🛡️ Multi-Engine Antivirus Scan Results</h4>';
+    let avHtml = '<h4>&#128737; Multi-Engine Antivirus Scan Results</h4>';
     if (Object.keys(avResults).length > 0) {
         Object.values(avResults).forEach(av => {
-            let statusColor, statusIcon, statusText, cardClass;
+            let statusColor, statusIcon, statusText;
             
             switch(av.status) {
                 case 'infected':
                     statusColor = 'var(--error)';
-                    statusIcon = '🚨';
+                    statusIcon = '&#128680;';
                     statusText = 'INFECTED';
-                    cardClass = 'alert alert-error';
                     break;
                 case 'clean':
                     statusColor = 'var(--success)';
-                    statusIcon = '✅';
+                    statusIcon = '&#9989;';
                     statusText = 'CLEAN';
-                    cardClass = 'alert alert-success';
                     break;
                 case 'submitted':
                     statusColor = 'var(--info)';
-                    statusIcon = '⏳';
+                    statusIcon = '&#8987;';
                     statusText = 'SUBMITTED';
-                    cardClass = 'alert alert-info';
                     break;
                 default:
                     statusColor = 'var(--warning)';
-                    statusIcon = '⚠️';
+                    statusIcon = '&#9888;';
                     statusText = 'WARNING';
-                    cardClass = 'alert alert-warning';
             }
             
             let detailsHtml = '';
             
-            // Enhanced coverage information
             if (av.total_engines && av.total_engines > 1) {
-                detailsHtml += `<br><small class="text-secondary">📊 Engine Coverage: ${av.total_engines} engines`;
+                detailsHtml += `<br><small class="text-secondary">&#128202; Engine Coverage: ${av.total_engines} engines`;
                 if (av.detections > 0) {
                     detailsHtml += ` (${av.detections} detected threats)`;
                 }
                 detailsHtml += '</small>';
             }
             
-            // Threat score display
             if (av.threat_score !== undefined) {
                 const scoreClass = av.threat_score > 70 ? 'text-error' : av.threat_score > 30 ? 'text-warning' : 'text-success';
-                detailsHtml += `<br><small class="${scoreClass}">🎯 Threat Score: ${av.threat_score}/100</small>`;
+                detailsHtml += `<br><small class="${scoreClass}">&#127919; Threat Score: ${av.threat_score}/100</small>`;
             }
             
-            // Clickable Analysis Links and IDs
             if (av.analysis_url || av.permalink) {
                 detailsHtml += '<br><div class="mt-1">';
                 if (av.analysis_url) {
-                    detailsHtml += `<a href="${av.analysis_url}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">🔗 View on ${av.engine}</a>`;
+                    detailsHtml += `<a href="${av.analysis_url}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">&#128279; View on ${av.engine}</a>`;
                 } else if (av.permalink) {
-                    detailsHtml += `<a href="${av.permalink}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">🔗 View Results</a>`;
+                    detailsHtml += `<a href="${av.permalink}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">&#128279; View Results</a>`;
                 }
                 detailsHtml += '</div>';
             }
             
-            // Display scan/data IDs with links
-            if (av.scan_id || av.data_id) {
-                detailsHtml += '<br><small class="text-secondary" style="font-family: var(--font-mono);">';
-                if (av.scan_id) {
-                    const shortId = av.scan_id.length > 16 ? av.scan_id.substring(0, 16) + '...' : av.scan_id;
-                    if (av.analysis_url) {
-                        detailsHtml += `🆔 ID: <a href="${av.analysis_url}" target="_blank">${shortId}</a>`;
-                    } else {
-                        detailsHtml += `🆔 ID: ${shortId}`;
-                    }
-                }
-                if (av.data_id) {
-                    if (av.analysis_url) {
-                        detailsHtml += `🆔 ID: <a href="${av.analysis_url}" target="_blank">${av.data_id}</a>`;
-                    } else {
-                        detailsHtml += `🆔 ID: ${av.data_id}`;
-                    }
-                }
-                detailsHtml += '</small>';
-            }
-            
-            // Enhanced status message for submissions
             let resultText = av.result;
             if (av.status === 'submitted' && av.note) {
                 resultText += ` - ${av.note}`;
@@ -242,62 +211,55 @@ function displayResults(results) {
                 </div>
             `;
         });
-        
-        // Enhanced summary
-        const engineCount = Object.keys(avResults).length;
-        const infectedCount = Object.values(avResults).filter(av => av.status === 'infected').length;
-        const submittedCount = Object.values(avResults).filter(av => av.status === 'submitted').length;
-        const totalEngines = Object.values(avResults).reduce((sum, av) => sum + (av.total_engines || 1), 0);
-        
-        if (engineCount > 1) {
-            const summaryClass = infectedCount > 0 ? 'alert-error' : submittedCount > 0 ? 'alert-info' : 'alert-success';
-            avHtml += `
-                <div class="alert ${summaryClass}">
-                    <strong>📊 Analysis Summary:</strong> ${engineCount} scanning service(s) used, 
-                    ${totalEngines} total AV engines covered, 
-                    ${infectedCount > 0 ? `<span class="text-error">${infectedCount} service(s) detected threats</span>` : 
-                      submittedCount > 0 ? `<span class="text-info">${submittedCount} analysis(es) in progress</span>` :
-                      `<span class="text-success">No threats detected</span>`}
-                </div>
-            `;
-        }
     }
     
-    // Enhanced String Analysis Results
-    let stringHtml = '<h4>🔤 Advanced String Analysis Results</h4>';
+    let entropyHtml = '<h4>&#127922; Entropy Analysis Results</h4>';
+    if (entropyAnalysis.overall_entropy !== undefined) {
+        let entropyClass, entropyDesc;
+        if (entropyAnalysis.overall_entropy > 7.0) {
+            entropyClass = 'alert alert-error';
+            entropyDesc = 'Likely Packed/Encrypted';
+        } else if (entropyAnalysis.overall_entropy > 6.0) {
+            entropyClass = 'alert alert-warning';
+            entropyDesc = 'Mixed Content';
+        } else {
+            entropyClass = 'alert alert-success';
+            entropyDesc = 'Normal';
+        }
+        
+        entropyHtml += `
+            <div class="${entropyClass}">
+                <strong>Overall Entropy:</strong> ${entropyAnalysis.overall_entropy.toFixed(3)}/8.0 (${entropyDesc})<br>
+                <strong>Suspicious Blocks:</strong> ${entropyAnalysis.analysis_summary?.suspicious_block_count || 0}<br>
+                ${entropyAnalysis.analysis_summary?.is_packed ? '<strong>&#9888; File may be packed or encrypted</strong>' : ''}
+            </div>
+        `;
+    } else {
+        entropyHtml += '<div class="alert alert-info">Entropy analysis not available</div>';
+    }
+    
+    let stringHtml = '<h4>&#128292; Advanced String Analysis Results</h4>';
     if (stringAnalysis.total_strings > 0) {
         stringHtml += `<p><strong>Total strings extracted:</strong> ${stringAnalysis.total_strings}</p>`;
         
-        if (stringAnalysis.summary && stringAnalysis.summary.length > 0) {
-            stringHtml += '<div class="alert alert-info">';
-            stringHtml += '<strong>📋 Analysis Summary:</strong><br>';
-            stringAnalysis.summary.forEach(item => {
-                stringHtml += `<p class="mb-1">• ${item}</p>`;
-            });
-            stringHtml += '</div>';
-        }
-        
-        // Show interesting patterns with enhanced styling
         if (stringAnalysis.patterns && Object.keys(stringAnalysis.patterns).length > 0) {
             stringHtml += '<div class="alert alert-warning">';
-            stringHtml += '<strong>🔍 Interesting Patterns Found:</strong><br>';
+            stringHtml += '<strong>&#128269; Interesting Patterns Found:</strong><br>';
             Object.entries(stringAnalysis.patterns).forEach(([type, matches]) => {
                 const iconMap = {
-                    'urls': '🌐', 'ips': '🌐', 'emails': '📧', 'domains': '🌐',
-                    'file_paths': '📁', 'registry_keys': '🔑', 'bitcoin_addresses': '₿', 'ethereum_addresses': 'Ξ'
+                    'urls': '&#127760;', 'ips': '&#127760;', 'emails': '&#128231;', 'domains': '&#127760;',
+                    'file_paths': '&#128193;', 'registry_keys': '&#128273;'
                 };
-                const icon = iconMap[type] || '🔍';
+                const icon = iconMap[type] || '&#128269;';
                 stringHtml += `<div class="mb-1"><strong>${icon} ${type.replace('_', ' ').toUpperCase()}:</strong> ${matches.slice(0, 3).join(', ')}${matches.length > 3 ? '...' : ''}</div>`;
             });
             stringHtml += '</div>';
         }
         
-        // Show API calls with enhanced categorization
         if (stringAnalysis.api_calls && stringAnalysis.api_calls.length > 0) {
             stringHtml += '<div class="alert alert-error">';
-            stringHtml += `<strong>⚙️ API Calls Found (${stringAnalysis.api_calls.length}):</strong><br>`;
+            stringHtml += `<strong>&#9881; API Calls Found (${stringAnalysis.api_calls.length}):</strong><br>`;
             
-            // Group by category
             const apiByCategory = {};
             stringAnalysis.api_calls.slice(0, 10).forEach(api => {
                 if (!apiByCategory[api.category]) {
@@ -308,12 +270,12 @@ function displayResults(results) {
             
             Object.entries(apiByCategory).forEach(([category, apis]) => {
                 const categoryIcons = {
-                    'File Operations': '📁', 'Process Manipulation': '⚙️', 'Registry Access': '🔑',
-                    'Network Activity': '🌐', 'Cryptography': '🔐', 'Other': '🔧'
+                    'File Operations': '&#128193;', 'Process Manipulation': '&#9881;', 'Registry Access': '&#128273;',
+                    'Network Activity': '&#127760;', 'Cryptography': '&#128272;', 'Other': '&#128295;'
                 };
-                const icon = categoryIcons[category] || '🔧';
+                const icon = categoryIcons[category] || '&#128295;';
                 stringHtml += `<div class="mb-1"><strong>${icon} ${category}:</strong> `;
-                apis.forEach((api, index) => {
+                apis.forEach((api) => {
                     stringHtml += `<span class="badge badge-error">${api}</span>`;
                 });
                 stringHtml += '</div>';
@@ -328,15 +290,14 @@ function displayResults(results) {
         stringHtml += '<p class="text-secondary">No strings extracted</p>';
     }
     
-    // Enhanced YARA Results
     let yaraHtml = '';
     if (yaraMatches.length > 0) {
         yaraHtml = `
             <div class="alert alert-warning">
-                <h4 style="margin-top: 0;">🔍 YARA Analysis: ${yaraMatches.length} Rule(s) Matched</h4>
+                <h4 style="margin-top: 0;">&#128269; YARA Analysis: ${yaraMatches.length} Rule(s) Matched</h4>
                 ${yaraMatches.slice(0, 3).map(match => `
                     <div class="card">
-                        <strong class="text-error">🚨 ${match.rule}</strong>
+                        <strong class="text-error">&#128680; ${match.rule}</strong>
                         ${match.meta.description ? `<br><small class="text-secondary">${match.meta.description}</small>` : ''}
                         ${match.meta.author ? `<br><small class="text-secondary">Author: ${match.meta.author}</small>` : ''}
                     </div>
@@ -345,43 +306,47 @@ function displayResults(results) {
             </div>
         `;
     } else {
-        yaraHtml = '<div class="alert alert-success">✅ No YARA rules matched - File appears clean</div>';
+        yaraHtml = '<div class="alert alert-success">&#9989; No YARA rules matched - File appears clean</div>';
     }
     
-    // Action buttons with enhanced threat hunting option
     const actionButtons = `
         <div class="text-center mt-3">
             <div class="card">
-                <a href="/results/${results.file_id || '#'}" class="btn btn-primary">👁️ View Detailed Results</a>
-                <a href="/threat-hunting" class="btn btn-error">🎯 Generate IOCs & Detection Rules</a>
-                <a href="/browse" class="btn btn-secondary">🔍 Browse All Results</a>
+                <a href="/results/${file_id || '#'}" class="btn btn-primary">&#128065; View Detailed Results</a>
+                <a href="/threat-hunting" class="btn btn-error">&#127919; Generate IOCs & Detection Rules</a>
+                <a href="/browse" class="btn btn-secondary">&#128270; Browse All Results</a>
             </div>
         </div>
     `;
     
     const html = `
         <div class="results">
-            <div class="grid grid-3 mb-3">
+            <div class="grid grid-4 mb-3">
                 <div class="card">
-                    <p><strong>📄 File Type:</strong> ${info.type}</p>
-                    <p><strong>📏 Size:</strong> ${info.size} bytes</p>
+                    <p><strong>&#128196; File Type:</strong> ${info.type}</p>
+                    <p><strong>&#128207; Size:</strong> ${info.size} bytes</p>
                 </div>
                 <div class="card">
-                    <p><strong>🔍 MD5:</strong></p>
+                    <p><strong>&#128269; MD5:</strong></p>
                     <div class="hash">${info.md5}</div>
                 </div>
                 <div class="card">
-                    <p><strong>🔍 SHA256:</strong></p>
+                    <p><strong>&#128269; SHA1:</strong></p>
+                    <div class="hash">${info.sha1}</div>
+                </div>
+                <div class="card">
+                    <p><strong>&#128269; SHA256:</strong></p>
                     <div class="hash">${info.sha256}</div>
                 </div>
             </div>
             
             ${avHtml}
+            ${entropyHtml}
             ${stringHtml}
             ${yaraHtml}
             
             <div class="alert alert-info mt-3">
-                <strong>🕐 Analysis completed:</strong> ${results.analysis_time}
+                <strong>&#128336; Analysis completed:</strong> ${results.analysis_time}
             </div>
             
             ${actionButtons}
@@ -399,26 +364,26 @@ async function loadRecentFiles() {
             const badges = [];
             
             if (file.yara_matches > 0) {
-                badges.push(`<span class="badge badge-error">🔍 ${file.yara_matches} YARA</span>`);
+                badges.push(`<span class="badge badge-error">&#128269; ${file.yara_matches} YARA</span>`);
             }
             
             const avDetections = file.av_detections || 0;
             if (avDetections > 0) {
-                badges.push(`<span class="badge badge-error">🛡️ ${avDetections} AV</span>`);
+                badges.push(`<span class="badge badge-error">&#128737; ${avDetections} AV</span>`);
             } else {
-                badges.push(`<span class="badge badge-success">🛡️ Clean</span>`);
+                badges.push(`<span class="badge badge-success">&#128737; Clean</span>`);
             }
             
             if (file.interesting_strings > 0) {
-                badges.push(`<span class="badge badge-info">🔤 ${file.interesting_strings}</span>`);
+                badges.push(`<span class="badge badge-info">&#128292; ${file.interesting_strings}</span>`);
             }
             
             if (file.yara_matches === 0 && avDetections === 0 && file.interesting_strings === 0) {
-                badges.push(`<span class="badge badge-success">✅ Clean</span>`);
+                badges.push(`<span class="badge badge-success">&#9989; Clean</span>`);
             }
             
             const threatHuntingBtn = (file.yara_matches > 0 || avDetections > 0) ?
-                `<a href="/threat-hunting" class="btn btn-error" style="padding: 3px 6px; font-size: 11px;">🎯 IOCs</a>` : '';
+                `<a href="/threat-hunting" class="btn btn-error" style="padding: 3px 6px; font-size: 11px;">&#127919; IOCs</a>` : '';
             
             return `
                 <div class="file-card">
@@ -430,7 +395,7 @@ async function loadRecentFiles() {
                             </div>
                         </div>
                         <div>
-                            <a href="/results/${file.id}" class="btn btn-primary" style="padding: 4px 8px; font-size: 12px;">👁️ View</a>
+                            <a href="/results/${results.file_id || '#'}" class="btn btn-primary" style="padding: 4px 8px; font-size: 12px;">&#128065; View</a>
                             ${threatHuntingBtn}
                         </div>
                     </div>
@@ -447,7 +412,7 @@ async function loadRecentFiles() {
     }
 }
 
-// Load recent files on page load
 loadRecentFiles();
 </script>
+
 {% endblock %}

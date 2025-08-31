@@ -809,3 +809,37 @@ input[type="checkbox"], input[type="radio"] {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+
+.rule-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 10px 0;
+    padding: 15px;
+}
+
+.rule-header {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 15px;
+    align-items: center;
+}
+
+.rule-info {
+    color: #666;
+    font-size: 14px;
+}
+
+.view-content-btn {
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.view-content-btn:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+
