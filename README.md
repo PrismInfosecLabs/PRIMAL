@@ -159,7 +159,7 @@ A comprehensive, containerized malware analysis platform built with a microservi
    sudo docker compose ps
 
    # ALTERNATIVELY
-   sudo ./primal_control.sh start
+   sudo ./primal-control.sh start
    ```
 
 6. **Access the Interface**
