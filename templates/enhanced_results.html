@@ -9,21 +9,31 @@
     </div>
 </div>
 
-<div class="results">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0;">
-        <div>
+<div class="results" style="background: #1e164d; border: 1px solid #e9ecef;">
+    <div class="file-info-grid">
+        <div class="file-details">
             <p><strong>Filename:</strong> {{ file_data.filename }}</p>
             <p><strong>File Type:</strong> {{ file_data.file_type }}</p>
             <p><strong>Size:</strong> {{ file_data.size }} bytes</p>
-        </div>
-        <div>
-            <p><strong>MD5:</strong> <span class="hash">{{ file_data.md5 }}</span></p>
-            <p><strong>SHA1:</strong> <span class="hash">{{ file_data.sha1 }}</span></p>
-            <p><strong>SHA256:</strong> <span class="hash">{{ file_data.sha256 }}</span></p>
-        </div>
-        <div>
             <p><strong>Upload Time:</strong> {{ file_data.upload_time }}</p>
             <p><strong>Status:</strong> {{ file_data.status }}</p>
+        </div>
+        
+        <div class="hash-container">
+            <div class="hash-section">
+                <div class="hash-label">MD5:</div>
+                <div class="hash">{{ file_data.md5 }}</div>
+            </div>
+            
+            <div class="hash-section">
+                <div class="hash-label">SHA1:</div>
+                <div class="hash">{{ file_data.sha1 }}</div>
+            </div>
+            
+            <div class="hash-section">
+                <div class="hash-label">SHA256:</div>
+                <div class="hash">{{ file_data.sha256 }}</div>
+            </div>
         </div>
     </div>
 </div>
@@ -33,7 +43,7 @@
     <div style="margin: 15px 0;">
         {% for av in av_results %}
         <div style="margin: 8px 0; padding: 15px; border: 1px solid 
-            {% if av.status == 'infected' %}#1e164d{% elif av.status == 'clean' %}#1e164d{% elif av.status == 'submitted' %}#1e164d{% else %}#ffc107{% endif %}; 
+            {% if av.status == 'infected' %}#e9ecef{% elif av.status == 'clean' %}#e9ecef{% elif av.status == 'submitted' %}#e9ecef{% else %}#e9ecef{% endif %}; 
             border-radius: 4px; background: 
             {% if av.status == 'infected' %}#1e164d{% elif av.status == 'clean' %}#1e164d{% elif av.status == 'submitted' %}#1e164d{% else %}#ffc10715{% endif %};" 
             data-status="{{ av.status }}" data-engine="{{ av.engine }}">
@@ -255,8 +265,8 @@
                 <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; background: #1e164d;">
                     <strong>Detailed String Matches:</strong>
                     {% for string in match.strings %}
-                    <div style="margin: 8px 0; padding: 8px; border-left: 3px solid #007bff; background: #e3f2fd;">
-                        <code style="padding: 2px 4px; background: #e9ecef; border-radius: 2px;">{{ string.identifier }}</code>
+                    <div style="margin: 8px 0; padding: 8px; border-left: 3px solid #007bff; background: #1e164d;">
+                        <code style="padding: 2px 4px; background: #1e164d; border-radius: 2px;">{{ string.identifier }}</code>
                         <small style="color: #6c757d; margin-left: 8px;">({{ string.instances|length }} instance{{ 's' if string.instances|length != 1 else '' }})</small>
                         
                         <!-- Show only first 2 instances by default -->

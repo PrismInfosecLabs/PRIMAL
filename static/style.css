@@ -106,7 +106,6 @@ h4, h5, h6 {
 
 p {
     margin-bottom: 15px;
-    color: var(--text-secondary);
 }
 
 /* Links */
@@ -210,19 +209,58 @@ a:hover {
     border: 1px solid var(--border);
 }
 
-/* Hash Display */
+
+/* Hash Section Styling */
+.hash-section {
+    margin-bottom: 15px;
+}
+
+.hash-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* File Info Grid */
+.file-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hash-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Update hash class to be full width */
 .hash {
     font-family: var(--font-mono);
     word-break: break-all;
     background: var(--primary-dark);
     padding: 8px 12px;
     border-radius: 6px;
-    display: inline-block;
+    display: block; /* Changed from inline-block to block */
     color: var(--accent-cyan);
-    border: 1px solid var(--border);
+    border: 1px solid #e9ecef;
     font-size: 0.9em;
+    width: 100%; /* Added for consistent width */
+    margin-top: 5px;
 }
 
+@media (max-width: 768px) {
+    .file-info-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
 /* Tables */
 table {
     border-collapse: collapse;
