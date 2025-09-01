@@ -63,9 +63,9 @@ check_status() {
 
 # Get service health
 get_health() {
-    local orchestrator_status=$(docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q orchestrator | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
-    local clamav_status=$(docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q clamav-scanner | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
-    local yara_status=$(docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q yara-scanner | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
+    local orchestrator_status=$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q orchestrator | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
+    local clamav_status=$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q clamav-scanner | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
+    local yara_status=$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q yara-scanner | xargs docker inspect --format='{{.State.Status}}' 2>/dev/null || echo "not running")
     
     echo "Service Status:"
     echo "  Orchestrator: $orchestrator_status"
