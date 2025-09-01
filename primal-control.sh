@@ -36,7 +36,7 @@ check_dependencies() {
         error_exit "Docker is not installed or not in PATH"
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker compose &> /dev/null; then
         error_exit "Docker Compose is not installed or not in PATH"
     fi
     
@@ -58,7 +58,7 @@ setup_directories() {
 
 # Check if services are running
 check_status() {
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps
 }
 
 # Get service health
@@ -87,10 +87,10 @@ start_services() {
     
     # Pull latest images if needed
     log "${BLUE}Pulling latest container images...${NC}"
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" pull
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" pull
     
     # Start services
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d
     
     # Wait for services to be ready
     log "${BLUE}Waiting for services to start...${NC}"
@@ -111,7 +111,7 @@ start_services() {
 stop_services() {
     log "${BLUE}Stopping PRIMAL Malware Analysis Lab...${NC}"
     
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down
     
     log "${GREEN}All services stopped.${NC}"
 }
@@ -130,10 +130,10 @@ show_logs() {
     
     if [ -n "$service" ]; then
         log "${BLUE}Showing logs for service: $service${NC}"
-        docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs -f "$service"
+        docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs -f "$service"
     else
         log "${BLUE}Showing logs for all services (press Ctrl+C to exit)${NC}"
-        docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs -f
+        docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs -f
     fi
 }
 
@@ -146,11 +146,11 @@ update_application() {
     
     # Pull latest images
     log "${BLUE}Pulling latest container images...${NC}"
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" pull
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" pull
     
     # Remove old containers
     log "${BLUE}Removing old containers...${NC}"
-    docker-compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" rm -f
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" rm -f
     
     # Start services
     start_services

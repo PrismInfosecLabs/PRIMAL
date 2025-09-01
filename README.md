@@ -141,22 +141,22 @@ A comprehensive, containerized malware analysis platform built with a microservi
 4. **Build the Platform**
    ```bash
    # Build all three containers
-   sudo docker-compose build
+   sudo docker compose build
    
    # Check service status
-   sudo docker-compose ps
+   sudo docker compose ps
    ```
 
 5. **Start the Platform**
    ```bash
    # Start all services (orchestrator, yara-scanner, clamav-scanner)
-   sudo docker-compose up -d
+   sudo docker compose up -d
    
    # Monitor startup progress
-   sudo docker-compose logs -f
+   sudo docker compose logs -f
    
    # Check service health
-   sudo docker-compose ps
+   sudo docker compose ps
 
    # ALTERNATIVELY
    sudo ./primal_control.sh start
@@ -199,7 +199,7 @@ PYTHONUNBUFFERED=1
 
 ### Container Resources
 
-Adjust resource limits in `docker-compose.yml`:
+Adjust resource limits in `docker compose.yml`:
 
 ```yaml
 # YARA Scanner (Higher memory for rule compilation)
@@ -370,12 +370,12 @@ GET /api/reports/download/{filename}
 
 ```bash
 # Check all container status
-sudo docker-compose ps
+sudo docker compose ps
 
 # View container-specific logs
-sudo docker-compose logs orchestrator
-sudo docker-compose logs yara-scanner
-sudo docker-compose logs clamav-scanner
+sudo docker compose logs orchestrator
+sudo docker compose logs yara-scanner
+sudo docker compose logs clamav-scanner
 
 # Monitor resource usage per container
 sudo docker stats
@@ -391,31 +391,31 @@ open http://localhost:8080/containers
 
 ```bash
 # Access database container
-sudo docker-compose exec orchestrator python -c "
+sudo docker compose exec orchestrator python -c "
 from app import get_db_connection
 conn = get_db_connection()
 # Run maintenance queries
 "
 
 # Backup database
-sudo docker-compose exec orchestrator cp /app/data/malware_analysis.db /app/backups/
+sudo docker compose exec orchestrator cp /app/data/malware_analysis.db /app/backups/
 ```
 
 ### Service-Specific Maintenance
 
 ```bash
 # YARA service maintenance
-sudo docker-compose exec yara-scanner curl http://localhost:5001/health
-sudo docker-compose logs yara-scanner
+sudo docker compose exec yara-scanner curl http://localhost:5001/health
+sudo docker compose logs yara-scanner
 
 # ClamAV service maintenance
-sudo docker-compose exec clamav-scanner curl http://localhost:5000/health
-sudo docker-compose exec clamav-scanner freshclam
+sudo docker compose exec clamav-scanner curl http://localhost:5000/health
+sudo docker compose exec clamav-scanner freshclam
 
 # Restart individual services
-sudo docker-compose restart yara-scanner
-sudo docker-compose restart clamav-scanner
-sudo docker-compose restart orchestrator
+sudo docker compose restart yara-scanner
+sudo docker compose restart clamav-scanner
+sudo docker compose restart orchestrator
 ```
 
 ## 🛠️ Troubleshooting
@@ -425,9 +425,9 @@ sudo docker-compose restart orchestrator
 **🐳 Container Won't Start**
 ```bash
 # Check container logs for specific service
-sudo docker-compose logs orchestrator
-sudo docker-compose logs yara-scanner  
-sudo docker-compose logs clamav-scanner
+sudo docker compose logs orchestrator
+sudo docker compose logs yara-scanner  
+sudo docker compose logs clamav-scanner
 
 # Verify port availability
 netstat -tulpn | grep :8080  # Orchestrator
@@ -442,50 +442,50 @@ systemctl status docker
 
 ```bash
 # Test inter-container connectivity
-sudo docker-compose exec orchestrator curl http://clamav-scanner:5000/health
-sudo docker-compose exec orchestrator curl http://yara-scanner:5001/health
+sudo docker compose exec orchestrator curl http://clamav-scanner:5000/health
+sudo docker compose exec orchestrator curl http://yara-scanner:5001/health
 
 # Check Docker network
 sudo docker network inspect primal-v1_malware-analysis
 
 # Verify service dependencies
-sudo docker-compose config
+sudo docker compose config
 ```
 
 **🧵 YARA Service Issues**
 
 ```bash
 # Check YARA rule compilation
-sudo docker-compose logs yara-scanner | grep -i error
+sudo docker compose logs yara-scanner | grep -i error
 
 # Restart YARA service independently
-sudo docker-compose restart yara-scanner
+sudo docker compose restart yara-scanner
 
 # Test YARA service directly
 curl http://localhost:5001/health
 
 # Check rule compilation status
-sudo docker-compose exec yara-scanner ls -la /app/rules
+sudo docker compose exec yara-scanner ls -la /app/rules
 ```
 
 ** 🦠 ClamAV Issues**
 
 ```bash
 # Update signatures manually
-sudo docker-compose exec clamav-scanner freshclam
+sudo docker compose exec clamav-scanner freshclam
 
 # Restart ClamAV daemon
-sudo docker-compose restart clamav-scanner
+sudo docker compose restart clamav-scanner
 
 # Check ClamAV daemon status
-sudo docker-compose exec clamav-scanner ps aux | grep clam
+sudo docker compose exec clamav-scanner ps aux | grep clam
 ```
 
 ** 🗄️ Database Issues**
 
 ```bash
 # Reinitialize database
-sudo docker-compose exec orchestrator python -c "
+sudo docker compose exec orchestrator python -c "
 from app import analyzer
 analyzer.init_database()
 "
@@ -495,7 +495,7 @@ analyzer.init_database()
 
 * **📈 Memory Usage**
 - Increase Docker memory limit in Docker Desktop (minimum 10GB for all services)
-- Adjust container resource limits in docker-compose.yml
+- Adjust container resource limits in docker compose.yml
 - Monitor per-service usage with `docker stats`
 - YARA container needs higher memory allocation for rule compilation
 
@@ -526,14 +526,14 @@ analyzer.init_database()
 
 ```bash
 # Restart all services
-sudo docker-compose restart
+sudo docker compose restart
 
 # Restart specific service
-sudo docker-compose restart yara-scanner
+sudo docker compose restart yara-scanner
 
 # Rebuild container if needed
-sudo docker-compose build yara-scanner
-sudo docker-compose up -d yara-scanner
+sudo docker compose build yara-scanner
+sudo docker compose up -d yara-scanner
 ```
 
 ## 🤝 Contributing
@@ -564,13 +564,13 @@ Please feel free to grab a copy and make modifications, or suggest enhancements 
 
 ```bash
 # Development with live reloading
-sudo docker-compose -f docker-compose.dev.yml up
+sudo docker compose -f docker compose.dev.yml up
 
 # Run tests
-sudo docker-compose exec orchestrator python -m pytest
+sudo docker compose exec orchestrator python -m pytest
 
 # Check container health during development
-sudo docker-compose exec orchestrator curl http://yara-scanner:5001/health
+sudo docker compose exec orchestrator curl http://yara-scanner:5001/health
 ```
 
 ## 📜 License
