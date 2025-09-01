@@ -2,7 +2,7 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h2>🔬 Enhanced Analysis Results</h2>
+    <h2>&#128300; Enhanced Analysis Results</h2>
     <div>
         <a href="/browse" class="btn" >Browse All Results</a>
         <a href="/" class="btn">Back to Upload</a>
@@ -28,20 +28,20 @@
     </div>
 </div>
 
-<h3>🛡️ Multi-Engine Antivirus Results</h3>
+<h3>&#128737; Multi-Engine Antivirus Results</h3>
 {% if av_results %}
     <div style="margin: 15px 0;">
         {% for av in av_results %}
         <div style="margin: 8px 0; padding: 15px; border: 1px solid 
-            {% if av.status == 'infected' %}#dc3545{% elif av.status == 'clean' %}#28a745{% elif av.status == 'submitted' %}#007bff{% else %}#ffc107{% endif %}; 
+            {% if av.status == 'infected' %}#1e164d{% elif av.status == 'clean' %}#1e164d{% elif av.status == 'submitted' %}#1e164d{% else %}#ffc107{% endif %}; 
             border-radius: 4px; background: 
-            {% if av.status == 'infected' %}#dc354515{% elif av.status == 'clean' %}#28a74515{% elif av.status == 'submitted' %}#007bff15{% else %}#ffc10715{% endif %};" 
-            data-status="{{ av.status }}" data-engine="{{ av.engine }}">>
+            {% if av.status == 'infected' %}#1e164d{% elif av.status == 'clean' %}#1e164d{% elif av.status == 'submitted' %}#1e164d{% else %}#ffc10715{% endif %};" 
+            data-status="{{ av.status }}" data-engine="{{ av.engine }}">
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div>
                     <strong style="font-size: 16px;">
-                        {% if av.status == 'infected' %}🚨{% elif av.status == 'clean' %}✅{% elif av.status == 'submitted' %}⏳{% else %}⚠️{% endif %}
+                        {% if av.status == 'infected' %}&#128680;{% elif av.status == 'clean' %}&#9989;{% elif av.status == 'submitted' %}&#8987;{% else %}&#9888;{% endif %}
                         {{ av.engine }}:
                     </strong>
                     <span style="margin-left: 8px;">{{ av.result }}</span>
@@ -151,37 +151,37 @@
         {% set clean_count = av_results | selectattr('status', 'equalto', 'clean') | list | length %}
         {% set total_engines = av_results | sum(attribute='total_engines') %}
         
-        <div style="margin-top: 15px; padding: 10px; border-radius: 4px; font-size: 14px;">
+        <div style="margin-top: 15px; padding: 10px; border: 1px solid #e9ecef; border-radius: 4px; background: #1e164d; font-size: 14px;">
             <strong>Analysis Summary:</strong> 
             {{ av_results|length }} scanning service(s) used, 
             {{ total_engines }} total AV engines covered, 
             {% if infected_count > 0 %}
-                <span>{{ infected_count }} service(s) detected threats</span>
+                <span style="color: #dc3545; font-weight: bold;">{{ infected_count }} service(s) detected threats</span>
             {% else %}
-                <span>No threats detected</span>
+                <span style="color: #28a745; font-weight: bold;">No threats detected</span>
             {% endif %}
         </div>
     </div>
 {% else %}
-    <div style="padding: 15px; border-radius: 4px; margin: 10px 0;">
+    <div style="padding: 15px; border: 1px solid #e9ecef; border-radius: 4px; background: #1e164d; margin: 10px 0;">
         No antivirus results available for this file.
     </div>
 {% endif %}
 
 <!-- Entropy Analysis Results -->
-<h3>Entropy Analysis</h3>
+<h3>&#129516; Entropy Analysis</h3>
 {% if analysis_data.entropy_analysis %}
-<div style="padding: 15px; border-radius: 4px; margin: 15px 0;">
+<div style="padding: 15px; border: 1px solid #e9ecef; border-radius: 4px; background: #1e164d; margin: 15px 0;">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
         <div>
             <strong>Overall Entropy:</strong> {{ "%.3f"|format(analysis_data.entropy_analysis.overall_entropy) }}/8.0<br>
             <strong>Classification:</strong> 
             {% if analysis_data.entropy_analysis.overall_entropy > 7.0 %}
-                <span style="color: #dc3545;">Likely Packed/Encrypted</span>
+                <span style="color: #dc3545; font-weight: bold;">Likely Packed/Encrypted</span>
             {% elif analysis_data.entropy_analysis.overall_entropy > 6.0 %}
-                <span style="color: #ffc107;">Mixed Content</span>
+                <span style="color: #ffc107; font-weight: bold;">Mixed Content</span>
             {% else %}
-                <span style="color: #28a745;">Normal</span>
+                <span style="color: #28a745; font-weight: bold;">Normal</span>
             {% endif %}
         </div>
         <div>
@@ -190,15 +190,19 @@
         </div>
     </div>
 </div>
+{% else %}
+<div style="padding: 15px; border: 1px solid #e9ecef; border-radius: 4px; background: #1e164d; margin: 15px 0;">
+    <span style="color: #6c757d;">Entropy analysis not available for this file.</span>
+</div>
 {% endif %}
 
 <!-- String Analysis Results -->
 {% if strings_summary %}
-<h3>🔤 String Analysis Summary</h3>
-<div style="padding: 15px; border-radius: 4px; margin: 15px 0;">
+<h3>&#128292; String Analysis Summary</h3>
+<div style="padding: 15px; border: 1px solid #e9ecef; border-radius: 4px; background: #1e164d; margin: 15px 0;">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
         {% for string_cat in strings_summary %}
-        <div style="text-align: center; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+        <div style="text-align: center; padding: 10px; border-radius: 4px; border: 1px solid #dee2e6;">
             <div style="font-size: 18px; font-weight: bold;">{{ string_cat.count }}</div>
             <div style="font-size: 12px;">{{ string_cat.type|title }} - {{ string_cat.category|title }}</div>
         </div>
@@ -206,20 +210,20 @@
     </div>
     <div style="text-align: center; margin-top: 10px;">
         <button onclick="loadDetailedStrings(FILE_ID)" class="btn">
-            🔍 View Detailed Strings
+            &#128269; View Detailed Strings
         </button>
     </div>
 </div>
 {% endif %}
 
 <!-- YARA Analysis Results -->
-<h3>🔍 YARA Analysis Results</h3>
+<h3>&#128269; YARA Analysis Results</h3>
 {% if yara_matches %}
-    <div style="border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin: 10px 0;">
-        <h4>🚨 {{ yara_matches|length }} YARA Rule(s) Matched</h4>
+    <div style="border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin: 10px 0; background: #1e164d;">
+        <h4 style="margin-top: 0;">&#128680; {{ yara_matches|length }} YARA Rule(s) Matched</h4>
         
         {% for match in yara_matches %}
-        <div style="margin: 10px 0; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
+        <div style="margin: 10px 0; padding: 15px; border-radius: 4px; border: 1px solid #dee2e6;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h5 style="margin: 0;">{{ match.rule }}</h5>
                 <button onclick="toggleYaraDetails('yara-{{ loop.index }}')" class="btn" style="padding: 4px 8px; font-size: 12px;">
@@ -248,16 +252,16 @@
             <!-- Detailed string matches (collapsible) -->
             <div id="yara-{{ loop.index }}" style="display: none; margin: 10px 0;">
                 {% if match.strings %}
-                <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; background: #f8f9fa;">
+                <div style="border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; background: #1e164d;">
                     <strong>Detailed String Matches:</strong>
                     {% for string in match.strings %}
-                    <div style="margin: 8px 0; padding: 8px; border-left: 3px solid background: #1E164D;";">
+                    <div style="margin: 8px 0; padding: 8px; border-left: 3px solid #007bff; background: #e3f2fd;">
                         <code style="padding: 2px 4px; background: #e9ecef; border-radius: 2px;">{{ string.identifier }}</code>
                         <small style="color: #6c757d; margin-left: 8px;">({{ string.instances|length }} instance{{ 's' if string.instances|length != 1 else '' }})</small>
                         
                         <!-- Show only first 2 instances by default -->
                         {% for instance in string.instances[:2] %}
-                        <div style="margin: 5px 0 5px 20px; font-size: 12px; padding: 4px; background: #1E164D; border-radius: 2px;">
+                        <div style="margin: 5px 0 5px 20px; font-size: 12px; padding: 4px; border-radius: 2px; border: 1px solid #dee2e6;">
                             <strong>Offset:</strong> 0x{{ "%x"|format(instance.offset) }} <br>
                             <strong>Length:</strong> {{ instance.length }}<br>
                             <strong>Data:</strong> 
@@ -279,8 +283,8 @@
         {% endfor %}
     </div>
 {% else %}
-    <div style="padding: 15px; border-radius: 4px; margin: 10px 0;">
-        ✅ No YARA rules matched. File appears clean based on current rule set.
+    <div style="padding: 15px; border: 1px solid #28a745; border-radius: 4px; background: #28a74515; margin: 10px 0;">
+        &#9989; No YARA rules matched. File appears clean based on current rule set.
     </div>
 {% endif %}
 
@@ -300,11 +304,11 @@
 </div>
 
 <!-- Detailed Strings Modal -->
-<div id="strings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: #1E164D">
-    <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto;">
+<div id="strings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(0,0,0,0.5);">
+    <div style="margin: 50px auto; padding: 20px; background: #1e164d; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3>🔤 Extracted Strings Analysis</h3>
-            <button onclick="closeStringsModal()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">&cross; Close</button>
+            <h3>&#128292; Extracted Strings Analysis</h3>
+            <button onclick="closeStringsModal()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">&times; Close</button>
         </div>
         <div id="strings-content">
             <p style="text-align: center;">Loading strings...</p>
@@ -376,10 +380,10 @@ async function loadDetailedStrings(fileId) {
             
             for (const [category, stringList] of Object.entries(categories)) {
                 html += `<h5 style="margin: 15px 0 10px 0;">${category} (${stringList.length} items)</h5>`;
-                html += '<div style="max-height: 200px; overflow-y: auto; padding: 10px; border-radius: 4px; margin-bottom: 15px; ">';
+                html += '<div style="max-height: 200px; overflow-y: auto; padding: 10px; background: #1e164d; border: 1px solid #e9ecef; border-radius: 4px; margin-bottom: 15px;">';
                 
                 stringList.slice(0, 50).forEach(item => {
-                    html += `<div style="margin: 3px 0; font-family: monospace; font-size: 12px; padding: 2px 4px; border-radius: 2px; ">`;
+                    html += `<div style="margin: 3px 0; font-family: monospace; font-size: 12px; padding: 2px 4px; border-radius: 2px;">`;
                     html += `<strong>${item.value}</strong>`;
                     if (item.context) {
                         html += `<br><small>Context: ${item.context}</small>`;
@@ -505,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`Found ${submittedElements.length} submitted analyses, will auto-check every 2 minutes`);
         // Show notification about auto-checking
         const notification = document.createElement('div');
-        notification.style.cssText = 'position: fixed; top: 10px; right: 10px; padding: 10px; border-radius: 4px; z-index: 1000; font-size: 12px;';
+        notification.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #007bff; color: white; padding: 10px; border-radius: 4px; z-index: 1000; font-size: 12px;';
         notification.textContent = `Auto-checking ${submittedElements.length} submitted analysis(es) every 2 minutes...`;
         document.body.appendChild(notification);
         
@@ -620,8 +624,8 @@ async function checkYaraServiceStatus() {
         
         if (!result.available) {
             const warning = document.createElement('div');
-            warning.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #1E164D; color: white; padding: 10px; border-radius: 4px; z-index: 1000;';
-            warning.innerHTML = 'YARA service unavailable - some rescans may fail. <a href="/containers" style="color: white;">Check status</a>';
+            warning.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #ffc107; color: black; padding: 10px; border-radius: 4px; z-index: 1000;';
+            warning.innerHTML = 'YARA service unavailable - some rescans may fail. <a href="/containers" style="color: black;">Check status</a>';
             document.body.appendChild(warning);
             
             setTimeout(() => {
