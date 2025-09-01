@@ -117,8 +117,8 @@ A comprehensive, containerized malware analysis platform built with a microservi
    ```bash
    # Install Docker and setup environment
    chmod +x docker_setup.sh
-   chmod +x primal_control.sh
-   chmod +x install_service.sh
+   chmod +x primal-control.sh
+   chmod +x install-service.sh
    ./docker_setup.sh
 
    # Copy environment template
