@@ -344,7 +344,7 @@ rule Suspicious_Network_Activity
             matches = self.compiled_rules.match(file_path)
             print(f'[DEBUG] Matches found: {[m.rule for m in matches]}')
         
-            results = []  # MOVED TO CORRECT POSITION
+            results = []
         
             for match in matches:
                 print(f'[DEBUG] Rule: {match.rule}, Namespace: {match.namespace}')
