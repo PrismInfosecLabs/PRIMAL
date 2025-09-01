@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🎯 Threat Hunting & IOC Generation</h2>
+    <a href="/" class="btn">Back to Analysis</a>
+</div>
+
+<div style="padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h4 style="margin-top: 0;">🚀 Generate Detection Content</h4>
+    <p style="margin-bottom: 0;">Create KQL queries, YARA rules, and IOCs from your analyzed files for threat hunting and detection engineering.</p>
+</div>
+
+<!-- File Selection -->
+<div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">📁 Select File for Analysis</h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center;">
+        <div>
+            <select id="file-selector" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <option value="">Select a file to generate detection content...</option>
+            </select>
+        </div>
+        <div>
+            <button onclick="loadFileDetection()" id="load-btn" class="btn" style="padding: 10px 20px;" disabled>
+                📊 Generate Detection Content
+            </button>
+        </div>
+    </div>
+    
+    <div id="file-info" style="display: none; margin-top: 15px; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+        <!-- File info will be displayed here -->
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loading" style="display: none; text-align: center; padding: 30px; border-radius: 8px; margin: 20px 0;">
+    <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p style="margin: 15px 0 0 0;">Generating threat hunting content...</p>
+</div>
+
+<!-- Detection Content Tabs -->
+<div id="detection-content" style="display: none; margin-top: 20px;">
+    <!-- Tab Navigation -->
+    <div style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+        <div style="display: flex; gap: 0;">
+            <button onclick="showTab('kql')" id="kql-tab" class="tab-btn active-tab" style="padding: 12px 20px; border: none; border-radius: 4px 4px 0 0; cursor: pointer; margin-right: 2px;">
+                🔍 KQL Queries
+            </button>
+            <button onclick="showTab('yara')" id="yara-tab" class="tab-btn" style="padding: 12px 20px; border: none; border-radius: 4px 4px 0 0; cursor: pointer; margin-right: 2px;">
+                📝 YARA Rule
+            </button>
+            <button onclick="showTab('iocs')" id="iocs-tab" class="tab-btn" style="padding: 12px 20px; border: none; border-radius: 4px 4px 0 0; cursor: pointer;">
+                🎯 IOCs & Export
+            </button>
+        </div>
+    </div>
+
+    <!-- KQL Queries Tab -->
+    <div id="kql-content" class="tab-content">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">🔍 KQL Threat Hunting Queries</h3>
+                <div>
+                    <button onclick="copyAllKQL()" class="btn" style="margin-right: 10px;">📋 Copy All</button>
+                    <button onclick="exportContent('kql')" class="btn">💾 Export KQL</button>
+                </div>
+            </div>
+            
+            <div id="kql-queries">
+                <!-- KQL queries will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- YARA Rule Tab -->
+    <div id="yara-content" class="tab-content" style="display: none;">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">📝 YARA Detection Rule</h3>
+                <div>
+                    <button onclick="copyYARA()" class="btn" style="margin-right: 10px;">📋 Copy Rule</button>
+                    <button onclick="exportContent('yara')" class="btn">💾 Export YARA</button>
+                </div>
+            </div>
+            
+            <div style="border-radius: 4px; padding: 15px;">
+                <pre id="yara-rule" style="padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px;"><code>// YARA rule will be generated here</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- IOCs Tab -->
+    <div id="iocs-content" class="tab-content" style="display: none;">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">🎯 Indicators of Compromise (IOCs)</h3>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="exportContent('iocs_json')" class="btn" style="padding: 5px 10px; font-size: 12px;">JSON</button>
+                    <button onclick="exportContent('iocs_csv')" class="btn" style="padding: 5px 10px; font-size: 12px;">CSV</button>
+                    <button onclick="exportContent('stix')" class="btn" style="padding: 5px 10px; font-size: 12px;">STIX</button>
+                    <button onclick="exportContent('misp')" class="btn" style="padding: 5px 10px; font-size: 12px;">MISP</button>
+                </div>
+            </div>
+            
+            <div id="iocs-display">
+                <!-- IOCs will be displayed here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentFileId = null;
+let currentDetectionData = null;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadFilesList();
+    
+    // File selector change handler
+    document.getElementById('file-selector').addEventListener('change', function() {
+        const fileId = this.value;
+        const loadBtn = document.getElementById('load-btn');
+        
+        if (fileId) {
+            loadBtn.disabled = false;
+            showFileInfo(fileId);
+        } else {
+            loadBtn.disabled = true;
+            hideFileInfo();
+        }
+    });
+});
+
+async function loadFilesList() {
+    try {
+        const response = await fetch('/api/files/list');
+        if (!response.ok) throw new Error('Failed to load files');
+        
+        const files = await response.json();
+        const selector = document.getElementById('file-selector');
+        
+        // Clear existing options
+        selector.innerHTML = '<option value="">Select a file to generate detection content...</option>';
+        
+        // Add files to selector
+        files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file.id;
+            option.textContent = `${file.filename} (${file.threat_level} risk - ${file.yara_matches} YARA, ${file.av_detections} AV)`;
+            selector.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Error loading files:', error);
+        alert('Error loading files: ' + error.message);
+    }
+}
+
+function showFileInfo(fileId) {
+    // This could be enhanced to show more file details
+    document.getElementById('file-info').style.display = 'block';
+    document.getElementById('file-info').innerHTML = `
+        <p><strong>📁 File selected:</strong> Ready to generate detection content</p>
+        <p><small>Click "Generate Detection Content" to create KQL queries, YARA rules, and IOCs</small></p>
+    `;
+}
+
+function hideFileInfo() {
+    document.getElementById('file-info').style.display = 'none';
+}
+
+async function loadFileDetection() {
+    const fileId = document.getElementById('file-selector').value;
+    if (!fileId) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    currentFileId = fileId;
+    
+    // Show loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('detection-content').style.display = 'none';
+    
+    try {
+        const response = await fetch(`/api/threat-hunting/${fileId}`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate detection content');
+        }
+        
+        const data = await response.json();
+        currentDetectionData = data;
+        
+        // Display the content
+        displayKQLQueries(data.kql_queries);
+        displayYARARule(data.yara_rule);
+        displayIOCs(data.iocs);
+        
+        // Show content tabs
+        document.getElementById('detection-content').style.display = 'block';
+        
+        // Update file info
+        document.getElementById('file-info').innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div><strong>📁 File:</strong> ${data.file_data.filename}</div>
+                <div><strong>🔢 Size:</strong> ${data.file_data.size} bytes</div>
+                <div><strong>📊 Type:</strong> ${data.file_data.file_type}</div>
+                <div><strong>🔑 SHA256:</strong> ${data.file_data.sha256.substring(0, 16)}...</div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error generating detection content:', error);
+        alert('Error generating detection content: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function displayKQLQueries(queries) {
+    const container = document.getElementById('kql-queries');
+    let html = '';
+    
+    if (Object.keys(queries).length === 0) {
+        html = '<p style="text-align: center; padding: 20px;">No KQL queries could be generated for this file.</p>';
+    } else {
+        for (const [queryName, queryContent] of Object.entries(queries)) {
+            const displayName = queryName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            html += `
+                <div class="kql-query-block">
+                    <div class="kql-query-header">
+                        <strong>🔍 ${displayName}</strong>
+                        <button onclick="copyKQLQuery('${queryName}')" class="copy-btn">📋 Copy</button>
+                    </div>
+                    <div class="kql-query-content" id="kql-${queryName}">${escapeHtml(queryContent)}</div>
+                </div>
+            `;
+        }
+    }
+    
+    container.innerHTML = html;
+}
+
+function displayYARARule(rule) {
+    document.getElementById('yara-rule').textContent = rule;
+}
+
+function displayIOCs(iocs) {
+    const container = document.getElementById('iocs-display');
+    let html = '';
+    
+    // File Indicators
+    if (iocs.json.indicators.file_indicators) {
+        html += `
+            <div class="ioc-section">
+                <div class="ioc-header">📁 File Indicators</div>
+                <div class="ioc-content">
+        `;
+        
+        for (const [key, value] of Object.entries(iocs.json.indicators.file_indicators)) {
+            if (value) {
+                html += `<div class="ioc-item"><strong>${key.toUpperCase()}:</strong> ${escapeHtml(value)}</div>`;
+            }
+        }
+        html += '</div></div>';
+    }
+    
+    // Network Indicators
+    const networkIOCs = iocs.json.indicators.network_indicators;
+    if (networkIOCs.urls.length > 0 || networkIOCs.domains.length > 0 || networkIOCs.ips.length > 0) {
+        html += `
+            <div class="ioc-section">
+                <div class="ioc-header">🌐 Network Indicators</div>
+                <div class="ioc-content">
+        `;
+        
+        if (networkIOCs.urls.length > 0) {
+            html += '<h5>URLs:</h5>';
+            networkIOCs.urls.forEach(url => {
+                html += `<div class="ioc-item">${escapeHtml(url)}</div>`;
+            });
+        }
+        
+        if (networkIOCs.domains.length > 0) {
+            html += '<h5>Domains:</h5>';
+            networkIOCs.domains.forEach(domain => {
+                html += `<div class="ioc-item">${escapeHtml(domain)}</div>`;
+            });
+        }
+        
+        if (networkIOCs.ips.length > 0) {
+            html += '<h5>IP Addresses:</h5>';
+            networkIOCs.ips.forEach(ip => {
+                html += `<div class="ioc-item">${escapeHtml(ip)}</div>`;
+            });
+        }
+        
+        html += '</div></div>';
+    }
+    
+    // Behavioral Indicators
+    const behavioralIOCs = iocs.json.indicators.behavioral_indicators;
+    if (behavioralIOCs.api_calls.length > 0 || behavioralIOCs.suspicious_strings.length > 0) {
+        html += `
+            <div class="ioc-section">
+                <div class="ioc-header">⚙️ Behavioral Indicators</div>
+                <div class="ioc-content">
+        `;
+        
+        if (behavioralIOCs.api_calls.length > 0) {
+            html += '<h5>API Calls:</h5>';
+            behavioralIOCs.api_calls.forEach(api => {
+                html += `<div class="ioc-item">${escapeHtml(api)}</div>`;
+            });
+        }
+        
+        if (behavioralIOCs.suspicious_strings.length > 0) {
+            html += '<h5>Suspicious Strings:</h5>';
+            behavioralIOCs.suspicious_strings.slice(0, 10).forEach(str => {
+                html += `<div class="ioc-item">${escapeHtml(str)}</div>`;
+            });
+        }
+        
+        html += '</div></div>';
+    }
+    
+    // Registry Indicators
+    const registryIOCs = iocs.json.indicators.registry_indicators;
+    if (registryIOCs.registry_keys.length > 0) {
+        html += `
+            <div class="ioc-section">
+                <div class="ioc-header">🔑 Registry Indicators</div>
+                <div class="ioc-content">
+        `;
+        
+        registryIOCs.registry_keys.forEach(key => {
+            html += `<div class="ioc-item">${escapeHtml(key)}</div>`;
+        });
+        
+        html += '</div></div>';
+    }
+    
+    if (html === '') {
+        html = '<p style="text-align: center; padding: 20px;">No IOCs could be extracted from this file.</p>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function showTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active-tab');        
+    });
+    
+    // Show selected tab content
+    document.getElementById(tabName + '-content').style.display = 'block';
+    
+    // Activate selected tab button
+    const activeBtn = document.getElementById(tabName + '-tab');
+    activeBtn.classList.add('active-tab');
+}
+
+async function copyKQLQuery(queryName) {
+    const queryElement = document.getElementById(`kql-${queryName}`);
+    const queryText = queryElement.textContent;
+    
+    try {
+        await navigator.clipboard.writeText(queryText);
+        showNotification('KQL query copied to clipboard!');
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = queryText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('KQL query copied to clipboard!');
+    }
+}
+
+async function copyAllKQL() {
+    if (!currentDetectionData) return;
+    
+    const allQueries = Object.entries(currentDetectionData.kql_queries)
+        .map(([name, query]) => `// ${name.replace(/_/g, ' ').toUpperCase()}\n${query}`)
+        .join('\n\n');
+    
+    try {
+        await navigator.clipboard.writeText(allQueries);
+        showNotification('All KQL queries copied to clipboard!');
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        showNotification('Copy failed - please try copying individual queries');
+    }
+}
+
+async function copyYARA() {
+    if (!currentDetectionData) return;
+    
+    try {
+        await navigator.clipboard.writeText(currentDetectionData.yara_rule);
+        showNotification('YARA rule copied to clipboard!');
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        showNotification('Copy failed - please select and copy manually');
+    }
+}
+
+async function exportContent(exportType) {
+    if (!currentFileId) {
+        alert('No file selected');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/threat-hunting/export/${currentFileId}/${exportType}`);
+        if (!response.ok) throw new Error('Export failed');
+        
+        // Get filename from response headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'export.txt';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        // Download the file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showNotification(`${exportType.toUpperCase()} exported successfully!`);
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Export failed: ' + error.message);
+    }
+}
+
+function showNotification(message) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 10000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        font-size: 14px;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+{% endblock %}

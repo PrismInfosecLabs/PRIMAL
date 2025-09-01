@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="upload-area" onclick="document.getElementById('file-input').click()">
+    <h3>&#128269; Drop files here or click to upload</h3>
+    <p>Files will be analyzed with YARA rules, multi-engine antivirus scanning, and advanced string extraction</p>
+    <input type="file" id="file-input" style="display: none;" onchange="uploadFile()">
+</div>
+
+<div class="nav-links">
+    <a href="/rules" class="btn btn-primary">&#128221; Manage YARA Rules</a>
+    <a href="/av" class="btn btn-primary">&#128737; Manage Antivirus</a>
+    <a href="/string-config" class="btn btn-primary">Manage String Config</a>
+    <a href="/threat-hunting" class="btn btn-primary">&#127919; Threat Hunting</a>
+    <a href="/reports" class="btn btn-primary">&#128202; Generate Reports</a>
+    <a href="/browse" class="btn btn-primary">&#128270; Browse Results</a>
+    <a href="/containers" class="btn btn-primary">&#128221; Container Management</a>
+</div>
+
+<div id="results" style="display: none;">
+    <h3>&#128300; Analysis Results</h3>
+    <div id="results-content"></div>
+</div>
+
+<div id="recent-files">
+    <h3>&#128221; Recent Analyses</h3>
+    <div id="file-list"></div>
+</div>
+
+<script>
+async function uploadFile() {
+    const fileInput = document.getElementById('file-input');
+    const file = fileInput.files[0];
+    
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    document.getElementById('results-content').innerHTML = '<p>Analyzing file with YARA rules, multi-engine antivirus scanning, and extracting strings...</p>';
+    document.getElementById('results').style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            displayResults(result.results, result.file_id);
+            loadRecentFiles();
+        } else {
+            document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${result.error}</p>`;
+        }
+    } catch (error) {
+        document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${error.message}</p>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.querySelector('.upload-area');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    uploadArea.addEventListener('drop', handleDrop, false);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight(e) {
+        uploadArea.style.backgroundColor = '#e3f2fd';
+        uploadArea.style.borderColor = '#2196f3';
+    }
+    
+    function unhighlight(e) {
+        uploadArea.style.backgroundColor = '';
+        uploadArea.style.borderColor = '';
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            handleFiles(files[0]);
+        }
+    }
+    
+    function handleFiles(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        document.getElementById('results-content').innerHTML = '<p>Analyzing file with YARA rules, multi-engine antivirus scanning, and extracting strings...</p>';
+        document.getElementById('results').style.display = 'block';
+        
+        uploadFileWithFormData(formData);
+    }
+    
+    async function uploadFileWithFormData(formData) {
+        try {
+            const response = await fetch('/api/files/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                displayResults(result.results, result.file_id);
+                loadRecentFiles();
+            } else {
+                document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${result.error}</p>`;
+            }
+        } catch (error) {
+            document.getElementById('results-content').innerHTML = `<p class="alert alert-error">Error: ${error.message}</p>`;
+        }
+    }
+});
+
+function displayResults(results, file_id) {
+    const info = results.file_info;
+    const yaraMatches = results.yara_matches || [];
+    const avResults = results.av_results || {};
+    const stringAnalysis = results.string_analysis || {};
+    const entropyAnalysis = results.entropy_analysis || {};
+    
+    let avHtml = '<h4>&#128737; Multi-Engine Antivirus Scan Results</h4>';
+    if (Object.keys(avResults).length > 0) {
+        Object.values(avResults).forEach(av => {
+            let statusColor, statusIcon, statusText;
+            
+            switch(av.status) {
+                case 'infected':
+                    statusColor = 'var(--error)';
+                    statusIcon = '&#128680;';
+                    statusText = 'INFECTED';
+                    break;
+                case 'clean':
+                    statusColor = 'var(--success)';
+                    statusIcon = '&#9989;';
+                    statusText = 'CLEAN';
+                    break;
+                case 'submitted':
+                    statusColor = 'var(--info)';
+                    statusIcon = '&#8987;';
+                    statusText = 'SUBMITTED';
+                    break;
+                default:
+                    statusColor = 'var(--warning)';
+                    statusIcon = '&#9888;';
+                    statusText = 'WARNING';
+            }
+            
+            let detailsHtml = '';
+            
+            if (av.total_engines && av.total_engines > 1) {
+                detailsHtml += `<br><small class="text-secondary">&#128202; Engine Coverage: ${av.total_engines} engines`;
+                if (av.detections > 0) {
+                    detailsHtml += ` (${av.detections} detected threats)`;
+                }
+                detailsHtml += '</small>';
+            }
+            
+            if (av.threat_score !== undefined) {
+                const scoreClass = av.threat_score > 70 ? 'text-error' : av.threat_score > 30 ? 'text-warning' : 'text-success';
+                detailsHtml += `<br><small class="${scoreClass}">&#127919; Threat Score: ${av.threat_score}/100</small>`;
+            }
+            
+            if (av.analysis_url || av.permalink) {
+                detailsHtml += '<br><div class="mt-1">';
+                if (av.analysis_url) {
+                    detailsHtml += `<a href="${av.analysis_url}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">&#128279; View on ${av.engine}</a>`;
+                } else if (av.permalink) {
+                    detailsHtml += `<a href="${av.permalink}" target="_blank" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">&#128279; View Results</a>`;
+                }
+                detailsHtml += '</div>';
+            }
+            
+            let resultText = av.result;
+            if (av.status === 'submitted' && av.note) {
+                resultText += ` - ${av.note}`;
+            }
+            
+            avHtml += `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <strong>${statusIcon} ${av.engine}:</strong> 
+                            <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                            ${av.scan_time ? `<span style="float: right;" class="text-secondary">${av.scan_time}s</span>` : ''}
+                            <br>
+                            <span>${resultText}</span>
+                            ${detailsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    let entropyHtml = '<h4>&#127922; Entropy Analysis Results</h4>';
+    if (entropyAnalysis.overall_entropy !== undefined) {
+        let entropyClass, entropyDesc;
+        if (entropyAnalysis.overall_entropy > 7.0) {
+            entropyClass = 'alert alert-error';
+            entropyDesc = 'Likely Packed/Encrypted';
+        } else if (entropyAnalysis.overall_entropy > 6.0) {
+            entropyClass = 'alert alert-warning';
+            entropyDesc = 'Mixed Content';
+        } else {
+            entropyClass = 'alert alert-success';
+            entropyDesc = 'Normal';
+        }
+        
+        entropyHtml += `
+            <div class="${entropyClass}">
+                <strong>Overall Entropy:</strong> ${entropyAnalysis.overall_entropy.toFixed(3)}/8.0 (${entropyDesc})<br>
+                <strong>Suspicious Blocks:</strong> ${entropyAnalysis.analysis_summary?.suspicious_block_count || 0}<br>
+                ${entropyAnalysis.analysis_summary?.is_packed ? '<strong>&#9888; File may be packed or encrypted</strong>' : ''}
+            </div>
+        `;
+    } else {
+        entropyHtml += '<div class="alert alert-info">Entropy analysis not available</div>';
+    }
+    
+    let stringHtml = '<h4>&#128292; Advanced String Analysis Results</h4>';
+    if (stringAnalysis.total_strings > 0) {
+        stringHtml += `<p><strong>Total strings extracted:</strong> ${stringAnalysis.total_strings}</p>`;
+        
+        if (stringAnalysis.patterns && Object.keys(stringAnalysis.patterns).length > 0) {
+            stringHtml += '<div class="alert alert-warning">';
+            stringHtml += '<strong>&#128269; Interesting Patterns Found:</strong><br>';
+            Object.entries(stringAnalysis.patterns).forEach(([type, matches]) => {
+                const iconMap = {
+                    'urls': '&#127760;', 'ips': '&#127760;', 'emails': '&#128231;', 'domains': '&#127760;',
+                    'file_paths': '&#128193;', 'registry_keys': '&#128273;'
+                };
+                const icon = iconMap[type] || '&#128269;';
+                stringHtml += `<div class="mb-1"><strong>${icon} ${type.replace('_', ' ').toUpperCase()}:</strong> ${matches.slice(0, 3).join(', ')}${matches.length > 3 ? '...' : ''}</div>`;
+            });
+            stringHtml += '</div>';
+        }
+        
+        if (stringAnalysis.api_calls && stringAnalysis.api_calls.length > 0) {
+            stringHtml += '<div class="alert alert-error">';
+            stringHtml += `<strong>&#9881; API Calls Found (${stringAnalysis.api_calls.length}):</strong><br>`;
+            
+            const apiByCategory = {};
+            stringAnalysis.api_calls.slice(0, 10).forEach(api => {
+                if (!apiByCategory[api.category]) {
+                    apiByCategory[api.category] = [];
+                }
+                apiByCategory[api.category].push(api.api);
+            });
+            
+            Object.entries(apiByCategory).forEach(([category, apis]) => {
+                const categoryIcons = {
+                    'File Operations': '&#128193;', 'Process Manipulation': '&#9881;', 'Registry Access': '&#128273;',
+                    'Network Activity': '&#127760;', 'Cryptography': '&#128272;', 'Other': '&#128295;'
+                };
+                const icon = categoryIcons[category] || '&#128295;';
+                stringHtml += `<div class="mb-1"><strong>${icon} ${category}:</strong> `;
+                apis.forEach((api) => {
+                    stringHtml += `<span class="badge badge-error">${api}</span>`;
+                });
+                stringHtml += '</div>';
+            });
+            
+            if (stringAnalysis.api_calls.length > 10) {
+                stringHtml += `<div class="text-secondary mt-1"><em>...and ${stringAnalysis.api_calls.length - 10} more API calls</em></div>`;
+            }
+            stringHtml += '</div>';
+        }
+    } else {
+        stringHtml += '<p class="text-secondary">No strings extracted</p>';
+    }
+    
+    let yaraHtml = '';
+    if (yaraMatches.length > 0) {
+        yaraHtml = `
+            <div class="alert alert-warning">
+                <h4 style="margin-top: 0;">&#128269; YARA Analysis: ${yaraMatches.length} Rule(s) Matched</h4>
+                ${yaraMatches.slice(0, 3).map(match => `
+                    <div class="card">
+                        <strong class="text-error">&#128680; ${match.rule}</strong>
+                        ${match.meta.description ? `<br><small class="text-secondary">${match.meta.description}</small>` : ''}
+                        ${match.meta.author ? `<br><small class="text-secondary">Author: ${match.meta.author}</small>` : ''}
+                    </div>
+                `).join('')}
+                ${yaraMatches.length > 3 ? `<p class="mt-2"><em>...and ${yaraMatches.length - 3} more matches</em></p>` : ''}
+            </div>
+        `;
+    } else {
+        yaraHtml = '<div class="alert alert-success">&#9989; No YARA rules matched - File appears clean</div>';
+    }
+    
+    const actionButtons = `
+        <div class="text-center mt-3">
+            <div class="card">
+                <a href="/results/${file_id || '#'}" class="btn btn-primary">&#128065; View Detailed Results</a>
+                <a href="/threat-hunting" class="btn btn-error">&#127919; Generate IOCs & Detection Rules</a>
+                <a href="/browse" class="btn btn-secondary">&#128270; Browse All Results</a>
+            </div>
+        </div>
+    `;
+    
+    const html = `
+        <div class="results">
+            <div class="grid grid-4 mb-3">
+                <div class="card">
+                    <p><strong>&#128196; File Type:</strong> ${info.type}</p>
+                    <p><strong>&#128207; Size:</strong> ${info.size} bytes</p>
+                </div>
+                <div class="card">
+                    <p><strong>&#128269; MD5:</strong></p>
+                    <div class="hash">${info.md5}</div>
+                </div>
+                <div class="card">
+                    <p><strong>&#128269; SHA1:</strong></p>
+                    <div class="hash">${info.sha1}</div>
+                </div>
+                <div class="card">
+                    <p><strong>&#128269; SHA256:</strong></p>
+                    <div class="hash">${info.sha256}</div>
+                </div>
+            </div>
+            
+            ${avHtml}
+            ${entropyHtml}
+            ${stringHtml}
+            ${yaraHtml}
+            
+            <div class="alert alert-info mt-3">
+                <strong>&#128336; Analysis completed:</strong> ${results.analysis_time}
+            </div>
+            
+            ${actionButtons}
+        </div>
+    `;
+    document.getElementById('results-content').innerHTML = html;
+}
+
+async function loadRecentFiles() {
+    try {
+        const response = await fetch('/api/files');
+        const files = await response.json();
+        
+        const html = files.map(file => {
+            const badges = [];
+            
+            if (file.yara_matches > 0) {
+                badges.push(`<span class="badge badge-error">&#128269; ${file.yara_matches} YARA</span>`);
+            }
+            
+            const avDetections = file.av_detections || 0;
+            if (avDetections > 0) {
+                badges.push(`<span class="badge badge-error">&#128737; ${avDetections} AV</span>`);
+            } else {
+                badges.push(`<span class="badge badge-success">&#128737; Clean</span>`);
+            }
+            
+            if (file.interesting_strings > 0) {
+                badges.push(`<span class="badge badge-info">&#128292; ${file.interesting_strings}</span>`);
+            }
+            
+            if (file.yara_matches === 0 && avDetections === 0 && file.interesting_strings === 0) {
+                badges.push(`<span class="badge badge-success">&#9989; Clean</span>`);
+            }
+            
+            const threatHuntingBtn = (file.yara_matches > 0 || avDetections > 0) ?
+                `<a href="/threat-hunting" class="btn btn-error" style="padding: 3px 6px; font-size: 11px;">&#127919; IOCs</a>` : '';
+            
+            return `
+                <div class="file-card">
+                    <div class="file-header">
+                        <div>
+                            <strong>${file.filename}</strong> 
+                            <div class="detection-badges mt-1">
+                                ${badges.join(' ')}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="/results/${file.id || '#'}"  class="btn btn-primary" style="padding: 4px 8px; font-size: 12px;">&#128065; View</a>
+                            ${threatHuntingBtn}
+                        </div>
+                    </div>
+                    <div class="p-2 text-secondary" style="font-size: 12px;">
+                        SHA256: ${file.sha256} | Size: ${file.size} bytes | Status: ${file.status}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        document.getElementById('file-list').innerHTML = html || '<p class="text-center text-secondary">No files analyzed yet.</p>';
+    } catch (error) {
+        document.getElementById('file-list').innerHTML = '<p class="alert alert-error">Error loading recent files.</p>';
+    }
+}
+
+loadRecentFiles();
+</script>
+
+{% endblock %}

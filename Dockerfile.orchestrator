@@ -1,0 +1,55 @@
+FROM python:3.10-slim
+
+# Disable pip's new "externally managed environment" restriction
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
+
+# Install system dependencies (YARA removed - now handled by separate container)
+RUN apt-get update && apt-get install -y \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    build-essential \
+    libmagic1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create user with UID 1000 to match host user (fixes permission issues)
+RUN groupadd -g 1000 appuser && useradd -u 1000 -g 1000 -s /bin/bash -m appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first (for better caching)
+COPY requirements.orchestrator.txt .
+RUN pip install --no-cache-dir --break-system-packages -r requirements.orchestrator.txt
+
+# Copy application files
+COPY app.py .
+COPY config/ config/
+COPY services/ services/
+COPY api/ api/
+COPY static/ static/
+COPY av_services/ av_services/
+COPY yara_services/ yara_services/
+
+# Create internal directories and set ownership
+RUN mkdir -p uploads reports data logs shared-files && \
+    chown -R appuser:appuser /app 
+
+# Copy simplified entrypoint that doesn't try to fix permissions
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch to user with matching UID
+USER 1000:1000
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "app.py"]

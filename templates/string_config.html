@@ -1,0 +1,890 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🔧 String Analysis Configuration</h2>
+    <a href="/" class="btn">Back to Analysis</a>
+</div>
+
+<div class="alert alert-info">
+    <h4 style="margin-top: 0;">⚙️ Customize String Extraction</h4>
+    <p style="margin-bottom: 0;">Configure regex patterns, API calls, suspicious keywords, and extraction settings to customize how strings are analyzed in your malware samples.</p>
+</div>
+
+<!-- Action Buttons -->
+<div class="text-center mb-3">
+    <button onclick="saveConfiguration()" class="btn btn-success">💾 Save Configuration</button>
+    <button onclick="resetToDefaults()" class="btn btn-warning">🔄 Reset to Defaults</button>
+    <button onclick="testPatterns()" class="btn btn-primary">🧪 Test Patterns</button>
+    <button onclick="backupConfiguration()" class="btn btn-secondary">📦 Backup Config</button>
+    <button onclick="importConfiguration()" class="btn btn-secondary">📂 Import Config</button>
+    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+</div>
+
+<!-- Loading Indicator -->
+<div id="loading" style="display: none;" class="text-center p-3">
+    <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid var(--surface); border-top: 3px solid var(--accent-cyan); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p class="mt-2">Loading configuration...</p>
+</div>
+
+<!-- Configuration Tabs -->
+<div id="config-container" style="display: none;">
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+        <button onclick="showTab('regex')" id="regex-tab" class="tab-btn active">🔍 Regex Patterns</button>
+        <button onclick="showTab('api')" id="api-tab" class="tab-btn">⚙️ API Calls</button>
+        <button onclick="showTab('keywords')" id="keywords-tab" class="tab-btn">🚨 Suspicious Keywords</button>
+        <button onclick="showTab('settings')" id="settings-tab" class="tab-btn">⚙️ Extraction Settings</button>
+        <button onclick="showTab('test')" id="test-tab" class="tab-btn">🧪 Pattern Tester</button>
+    </div>
+
+    <!-- Regex Patterns Tab -->
+    <div id="regex-content" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">🔍 Regular Expression Patterns</h3>
+                    <button onclick="addRegexPattern()" class="btn btn-primary">➕ Add Pattern</button>
+                </div>
+            </div>
+            <div id="regex-patterns-container">
+                <!-- Regex patterns will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- API Calls Tab -->
+    <div id="api-content" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">⚙️ API Call Groups</h3>
+                    <button onclick="addApiGroup()" class="btn btn-primary">➕ Add Group</button>
+                </div>
+            </div>
+            <div id="api-groups-container">
+                <!-- API groups will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Suspicious Keywords Tab -->
+    <div id="keywords-content" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">🚨 Suspicious Keyword Groups</h3>
+                    <button onclick="addKeywordGroup()" class="btn btn-primary">➕ Add Group</button>
+                </div>
+            </div>
+            <div id="keyword-groups-container">
+                <!-- Keyword groups will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Extraction Settings Tab -->
+    <div id="settings-content" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h3 style="margin: 0;">⚙️ String Extraction Settings</h3>
+            </div>
+            <div id="extraction-settings-container" class="p-3">
+                <!-- Settings will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Pattern Tester Tab -->
+    <div id="test-content" class="tab-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h3 style="margin: 0;">🧪 Pattern Tester</h3>
+            </div>
+            <div class="p-3">
+                <div class="form-group">
+                    <label for="test-string"><strong>Test String:</strong></label>
+                    <textarea id="test-string" class="form-control" rows="4" placeholder="Enter text to test patterns against...">http://example.com/malware.exe
+192.168.1.1
+user@evil.com
+C:\Windows\System32\malware.dll
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+CreateFile
+WriteProcessMemory
+password123</textarea>
+                </div>
+                <button onclick="runPatternTest()" class="btn btn-primary">?? Test Patterns</button>
+                <div id="test-results" class="mt-3">
+                    <!-- Test results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.pattern-item, .group-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 10px 0;
+    background: var(--surface-light);
+}
+
+.pattern-header, .group-header {
+    background: var(--surface);
+    padding: 15px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pattern-content, .group-content {
+    padding: 15px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.form-control:focus {
+    border-color: var(--accent-cyan);
+    outline: none;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+
+.test-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.test-match {
+    background: var(--primary-dark);
+    color: var(--accent-cyan);
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin: 2px;
+    display: inline-block;
+}
+
+.validation-error {
+    color: var(--error);
+    background: rgba(255, 51, 102, 0.1);
+    border: 1px solid var(--error);
+    border-radius: 4px;
+    padding: 8px;
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+</style>
+
+<script>
+let currentConfig = null;
+let unsavedChanges = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+    
+    // Warning for unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+        if (unsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+});
+
+async function loadConfiguration() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('config-container').style.display = 'none';
+    
+    try {
+        // UPDATED PATH: Changed from /api/string-config to /api/config/string-config
+        const response = await fetch('/api/config/string-config');
+        const result = await response.json();
+        
+        if (result.success) {
+            currentConfig = result.config;
+            displayConfiguration();
+            document.getElementById('config-container').style.display = 'block';
+        } else {
+            showNotification('Error loading configuration: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error loading configuration: ' + error.message, 'error');
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function displayConfiguration() {
+    displayRegexPatterns();
+    displayApiGroups();
+    displayKeywordGroups();
+    displayExtractionSettings();
+}
+
+function displayRegexPatterns() {
+    const container = document.getElementById('regex-patterns-container');
+    const patterns = currentConfig.regex_patterns || {};
+    
+    let html = '';
+    for (const [patternName, patternConfig] of Object.entries(patterns)) {
+        html += createRegexPatternItem(patternName, patternConfig);
+    }
+    
+    container.innerHTML = html;
+}
+
+function createRegexPatternItem(name, config) {
+    const flagsChecked = (config.flags || []).map(flag => 
+        `<label><input type="checkbox" value="${flag}" ${config.flags && config.flags.includes(flag) ? 'checked' : ''}> ${flag}</label>`
+    ).join(' ');
+    
+    return `
+        <div class="pattern-item" id="pattern-${name}">
+            <div class="pattern-header">
+                <div>
+                    <strong>${name}</strong>
+                    <span class="badge ${config.enabled ? 'badge-success' : 'badge-secondary'}">${config.enabled ? 'Enabled' : 'Disabled'}</span>
+                    <small class="text-secondary ml-2">${config.category || 'general'}</small>
+                </div>
+                <div>
+                    <button class="collapse-btn" onclick="togglePatternCollapse('${name}')">▼</button>
+                    <button onclick="deleteRegexPattern('${name}')" class="btn btn-error" style="padding: 4px 8px; margin-left: 5px;">🗑️</button>
+                </div>
+            </div>
+            <div class="pattern-content" id="pattern-content-${name}">
+                <div class="form-row">
+                    <div>
+                        <label><strong>Pattern Name:</strong></label>
+                        <input type="text" class="form-control" value="${name}" onchange="updatePatternName('${name}', this.value)">
+                    </div>
+                    <div>
+                        <label><strong>Category:</strong></label>
+                        <select class="form-control" onchange="updatePatternConfig('${name}', 'category', this.value)">
+                            <option value="network" ${config.category === 'network' ? 'selected' : ''}>Network</option>
+                            <option value="filesystem" ${config.category === 'filesystem' ? 'selected' : ''}>Filesystem</option>
+                            <option value="registry" ${config.category === 'registry' ? 'selected' : ''}>Registry</option>
+                            <option value="cryptocurrency" ${config.category === 'cryptocurrency' ? 'selected' : ''}>Cryptocurrency</option>
+                            <option value="encoding" ${config.category === 'encoding' ? 'selected' : ''}>Encoding</option>
+                            <option value="financial" ${config.category === 'financial' ? 'selected' : ''}>Financial</option>
+                            <option value="personal" ${config.category === 'personal' ? 'selected' : ''}>Personal</option>
+                            <option value="general" ${config.category === 'general' ? 'selected' : ''}>General</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Regular Expression:</strong></label>
+                    <textarea class="form-control" rows="2" onchange="updatePatternConfig('${name}', 'pattern', this.value)">${config.pattern || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label><strong>Description:</strong></label>
+                    <input type="text" class="form-control" value="${config.description || ''}" onchange="updatePatternConfig('${name}', 'description', this.value)">
+                </div>
+                <div class="form-group">
+                    <label><strong>Flags:</strong></label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="IGNORECASE" ${config.flags && config.flags.includes('IGNORECASE') ? 'checked' : ''} onchange="updatePatternFlags('${name}')"> IGNORECASE</label>
+                        <label><input type="checkbox" value="MULTILINE" ${config.flags && config.flags.includes('MULTILINE') ? 'checked' : ''} onchange="updatePatternFlags('${name}')"> MULTILINE</label>
+                        <label><input type="checkbox" value="DOTALL" ${config.flags && config.flags.includes('DOTALL') ? 'checked' : ''} onchange="updatePatternFlags('${name}')"> DOTALL</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" ${config.enabled ? 'checked' : ''} onchange="updatePatternConfig('${name}', 'enabled', this.checked)"> <strong>Enabled</strong></label>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function displayApiGroups() {
+    const container = document.getElementById('api-groups-container');
+    const groups = currentConfig.api_calls || {};
+    
+    let html = '';
+    for (const [groupName, groupConfig] of Object.entries(groups)) {
+        html += createApiGroupItem(groupName, groupConfig);
+    }
+    
+    container.innerHTML = html;
+}
+
+function createApiGroupItem(name, config) {
+    const callsList = (config.calls || []).join(', ');
+    
+    return `
+        <div class="group-item" id="api-group-${name}">
+            <div class="group-header">
+                <div>
+                    <strong>${name}</strong>
+                    <span class="badge ${config.enabled ? 'badge-success' : 'badge-secondary'}">${config.enabled ? 'Enabled' : 'Disabled'}</span>
+                    <small class="text-secondary ml-2">${config.calls ? config.calls.length : 0} API calls</small>
+                </div>
+                <div>
+                    <button class="collapse-btn" onclick="toggleGroupCollapse('api', '${name}')">▼</button>
+                    <button onclick="deleteApiGroup('${name}')" class="btn btn-error" style="padding: 4px 8px; margin-left: 5px;">🗑️</button>
+                </div>
+            </div>
+            <div class="group-content" id="api-group-content-${name}">
+                <div class="form-row">
+                    <div>
+                        <label><strong>Group Name:</strong></label>
+                        <input type="text" class="form-control" value="${name}" onchange="updateApiGroupName('${name}', this.value)">
+                    </div>
+                    <div>
+                        <label><strong>Category:</strong></label>
+                        <input type="text" class="form-control" value="${config.category || ''}" onchange="updateApiGroupConfig('${name}', 'category', this.value)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Description:</strong></label>
+                    <input type="text" class="form-control" value="${config.description || ''}" onchange="updateApiGroupConfig('${name}', 'description', this.value)">
+                </div>
+                <div class="form-group">
+                    <label><strong>API Calls (comma-separated):</strong></label>
+                    <textarea class="form-control" rows="3" onchange="updateApiGroupCalls('${name}', this.value)">${callsList}</textarea>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" ${config.enabled ? 'checked' : ''} onchange="updateApiGroupConfig('${name}', 'enabled', this.checked)"> <strong>Enabled</strong></label>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function displayKeywordGroups() {
+    const container = document.getElementById('keyword-groups-container');
+    const groups = currentConfig.suspicious_keywords || {};
+    
+    let html = '';
+    for (const [groupName, groupConfig] of Object.entries(groups)) {
+        html += createKeywordGroupItem(groupName, groupConfig);
+    }
+    
+    container.innerHTML = html;
+}
+
+function createKeywordGroupItem(name, config) {
+    const keywordsList = (config.keywords || []).join(', ');
+    
+    return `
+        <div class="group-item" id="keyword-group-${name}">
+            <div class="group-header">
+                <div>
+                    <strong>${name}</strong>
+                    <span class="badge ${config.enabled ? 'badge-success' : 'badge-secondary'}">${config.enabled ? 'Enabled' : 'Disabled'}</span>
+                    <small class="text-secondary ml-2">${config.keywords ? config.keywords.length : 0} keywords</small>
+                </div>
+                <div>
+                    <button class="collapse-btn" onclick="toggleGroupCollapse('keyword', '${name}')">▼</button>
+                    <button onclick="deleteKeywordGroup('${name}')" class="btn btn-error" style="padding: 4px 8px; margin-left: 5px;">🗑️</button>
+                </div>
+            </div>
+            <div class="group-content" id="keyword-group-content-${name}">
+                <div class="form-row">
+                    <div>
+                        <label><strong>Group Name:</strong></label>
+                        <input type="text" class="form-control" value="${name}" onchange="updateKeywordGroupName('${name}', this.value)">
+                    </div>
+                    <div>
+                        <label><strong>Category:</strong></label>
+                        <input type="text" class="form-control" value="${config.category || ''}" onchange="updateKeywordGroupConfig('${name}', 'category', this.value)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><strong>Description:</strong></label>
+                    <input type="text" class="form-control" value="${config.description || ''}" onchange="updateKeywordGroupConfig('${name}', 'description', this.value)">
+                </div>
+                <div class="form-group">
+                    <label><strong>Keywords (comma-separated):</strong></label>
+                    <textarea class="form-control" rows="3" onchange="updateKeywordGroupKeywords('${name}', this.value)">${keywordsList}</textarea>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" ${config.enabled ? 'checked' : ''} onchange="updateKeywordGroupConfig('${name}', 'enabled', this.checked)"> <strong>Enabled</strong></label>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function displayExtractionSettings() {
+    const container = document.getElementById('extraction-settings-container');
+    const settings = currentConfig.extraction_settings || {};
+    
+    container.innerHTML = `
+        <div class="settings-grid">
+            <div class="form-group">
+                <label><strong>Minimum String Length:</strong></label>
+                <input type="number" class="form-control" min="1" max="100" value="${settings.min_string_length || 4}" onchange="updateExtractionSetting('min_string_length', parseInt(this.value))">
+                <small class="text-secondary">Strings shorter than this will be ignored</small>
+            </div>
+            <div class="form-group">
+                <label><strong>Maximum Strings Per File:</strong></label>
+                <input type="number" class="form-control" min="100" max="10000" value="${settings.max_strings_per_file || 1000}" onchange="updateExtractionSetting('max_strings_per_file', parseInt(this.value))">
+                <small class="text-secondary">Limit to prevent memory issues with large files</small>
+            </div>
+            <div class="form-group">
+                <label><strong>ASCII Ratio Threshold:</strong></label>
+                <input type="number" class="form-control" min="0" max="1" step="0.1" value="${settings.ascii_ratio_threshold || 0.7}" onchange="updateExtractionSetting('ascii_ratio_threshold', parseFloat(this.value))">
+                <small class="text-secondary">Minimum ratio of ASCII characters in Unicode strings</small>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" ${settings.enable_unicode_extraction !== false ? 'checked' : ''} onchange="updateExtractionSetting('enable_unicode_extraction', this.checked)"> <strong>Enable Unicode Extraction</strong></label>
+                <small class="text-secondary">Extract UTF-16 encoded strings</small>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" ${settings.enable_ascii_extraction !== false ? 'checked' : ''} onchange="updateExtractionSetting('enable_ascii_extraction', this.checked)"> <strong>Enable ASCII Extraction</strong></label>
+                <small class="text-secondary">Extract ASCII encoded strings</small>
+            </div>
+        </div>
+    `;
+}
+
+// Tab management
+function showTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected content and activate tab
+    document.getElementById(tabName + '-content').style.display = 'block';
+    document.getElementById(tabName + '-tab').classList.add('active');
+}
+
+// Configuration update functions
+function updatePatternConfig(name, key, value) {
+    if (!currentConfig.regex_patterns[name]) return;
+    currentConfig.regex_patterns[name][key] = value;
+    unsavedChanges = true;
+    
+    // Update badge
+    if (key === 'enabled') {
+        const badge = document.querySelector(`#pattern-${name} .badge`);
+        if (badge) {
+            badge.className = `badge ${value ? 'badge-success' : 'badge-secondary'}`;
+            badge.textContent = value ? 'Enabled' : 'Disabled';
+        }
+    }
+}
+
+function updatePatternFlags(name) {
+    const checkboxes = document.querySelectorAll(`#pattern-content-${name} input[type="checkbox"][value]`);
+    const flags = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+    
+    currentConfig.regex_patterns[name].flags = flags;
+    unsavedChanges = true;
+}
+
+function updatePatternName(oldName, newName) {
+    if (oldName === newName || !newName.trim()) return;
+    
+    if (currentConfig.regex_patterns[newName]) {
+        alert('Pattern name already exists!');
+        return;
+    }
+    
+    currentConfig.regex_patterns[newName] = currentConfig.regex_patterns[oldName];
+    delete currentConfig.regex_patterns[oldName];
+    unsavedChanges = true;
+    
+    displayRegexPatterns();
+}
+
+function updateApiGroupConfig(name, key, value) {
+    if (!currentConfig.api_calls[name]) return;
+    currentConfig.api_calls[name][key] = value;
+    unsavedChanges = true;
+    
+    if (key === 'enabled') {
+        const badge = document.querySelector(`#api-group-${name} .badge`);
+        if (badge) {
+            badge.className = `badge ${value ? 'badge-success' : 'badge-secondary'}`;
+            badge.textContent = value ? 'Enabled' : 'Disabled';
+        }
+    }
+}
+
+function updateApiGroupCalls(name, value) {
+    const calls = value.split(',').map(call => call.trim()).filter(call => call);
+    currentConfig.api_calls[name].calls = calls;
+    unsavedChanges = true;
+    
+    // Update count display
+    const countSpan = document.querySelector(`#api-group-${name} .text-secondary`);
+    if (countSpan) {
+        countSpan.textContent = `${calls.length} API calls`;
+    }
+}
+
+function updateKeywordGroupConfig(name, key, value) {
+    if (!currentConfig.suspicious_keywords[name]) return;
+    currentConfig.suspicious_keywords[name][key] = value;
+    unsavedChanges = true;
+    
+    if (key === 'enabled') {
+        const badge = document.querySelector(`#keyword-group-${name} .badge`);
+        if (badge) {
+            badge.className = `badge ${value ? 'badge-success' : 'badge-secondary'}`;
+            badge.textContent = value ? 'Enabled' : 'Disabled';
+        }
+    }
+}
+
+function updateKeywordGroupKeywords(name, value) {
+    const keywords = value.split(',').map(keyword => keyword.trim()).filter(keyword => keyword);
+    currentConfig.suspicious_keywords[name].keywords = keywords;
+    unsavedChanges = true;
+    
+    // Update count display
+    const countSpan = document.querySelector(`#keyword-group-${name} .text-secondary`);
+    if (countSpan) {
+        countSpan.textContent = `${keywords.length} keywords`;
+    }
+}
+
+function updateExtractionSetting(key, value) {
+    if (!currentConfig.extraction_settings) {
+        currentConfig.extraction_settings = {};
+    }
+    currentConfig.extraction_settings[key] = value;
+    unsavedChanges = true;
+}
+
+// Add new items
+function addRegexPattern() {
+    const name = prompt('Enter pattern name:');
+    if (!name || !name.trim()) return;
+    
+    if (currentConfig.regex_patterns[name]) {
+        alert('Pattern name already exists!');
+        return;
+    }
+    
+    currentConfig.regex_patterns[name] = {
+        pattern: '',
+        flags: [],
+        description: '',
+        category: 'general',
+        enabled: true
+    };
+    
+    unsavedChanges = true;
+    displayRegexPatterns();
+}
+
+function addApiGroup() {
+    const name = prompt('Enter group name:');
+    if (!name || !name.trim()) return;
+    
+    if (currentConfig.api_calls[name]) {
+        alert('Group name already exists!');
+        return;
+    }
+    
+    currentConfig.api_calls[name] = {
+        calls: [],
+        description: '',
+        category: 'Custom',
+        enabled: true
+    };
+    
+    unsavedChanges = true;
+    displayApiGroups();
+}
+
+function addKeywordGroup() {
+    const name = prompt('Enter group name:');
+    if (!name || !name.trim()) return;
+    
+    if (currentConfig.suspicious_keywords[name]) {
+        alert('Group name already exists!');
+        return;
+    }
+    
+    currentConfig.suspicious_keywords[name] = {
+        keywords: [],
+        description: '',
+        category: 'custom',
+        enabled: true
+    };
+    
+    unsavedChanges = true;
+    displayKeywordGroups();
+}
+
+// Delete items
+function deleteRegexPattern(name) {
+    if (confirm(`Delete pattern "${name}"?`)) {
+        delete currentConfig.regex_patterns[name];
+        unsavedChanges = true;
+        displayRegexPatterns();
+    }
+}
+
+function deleteApiGroup(name) {
+    if (confirm(`Delete API group "${name}"?`)) {
+        delete currentConfig.api_calls[name];
+        unsavedChanges = true;
+        displayApiGroups();
+    }
+}
+
+function deleteKeywordGroup(name) {
+    if (confirm(`Delete keyword group "${name}"?`)) {
+        delete currentConfig.suspicious_keywords[name];
+        unsavedChanges = true;
+        displayKeywordGroups();
+    }
+}
+
+// Collapse/expand
+function togglePatternCollapse(name) {
+    const content = document.getElementById(`pattern-content-${name}`);
+    const btn = document.querySelector(`#pattern-${name} .collapse-btn`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        btn.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        btn.textContent = '▶';
+    }
+}
+
+function toggleGroupCollapse(type, name) {
+    const content = document.getElementById(`${type}-group-content-${name}`);
+    const btn = document.querySelector(`#${type}-group-${name} .collapse-btn`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        btn.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        btn.textContent = '▶';
+    }
+}
+
+// Configuration management
+async function saveConfiguration() {
+    try {
+        // UPDATED PATH: Changed from /api/string-config to /api/config/string-config
+        const response = await fetch('/api/config/string-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentConfig)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            unsavedChanges = false;
+            showNotification('Configuration saved successfully!', 'success');
+        } else {
+            showNotification('Error saving configuration: ' + result.error, 'error');
+            if (result.validation_errors) {
+                console.error('Validation errors:', result.validation_errors);
+            }
+        }
+    } catch (error) {
+        showNotification('Error saving configuration: ' + error.message, 'error');
+    }
+}
+
+async function resetToDefaults() {
+    if (!confirm('Reset all configuration to defaults? This will lose all custom settings.')) {
+        return;
+    }
+    
+    try {
+        // UPDATED PATH: Changed from /api/string-config/reset to /api/config/string-config/reset
+        const response = await fetch('/api/config/string-config/reset', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            unsavedChanges = false;
+            showNotification('Configuration reset to defaults', 'success');
+            loadConfiguration();
+        } else {
+            showNotification('Error resetting configuration: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error resetting configuration: ' + error.message, 'error');
+    }
+}
+
+async function runPatternTest() {
+    showTab('test');
+    const testString = document.getElementById('test-string').value;
+    const resultsDiv = document.getElementById('test-results');
+    
+    if (!testString.trim()) {
+        resultsDiv.innerHTML = '<div class="alert alert-warning">Please enter test string</div>';
+        return;
+    }
+    
+    resultsDiv.innerHTML = '<div class="text-center">Testing patterns...</div>';
+    
+    try {
+        // UPDATED PATH: Changed from /api/string-config/test to /api/config/string-config/test
+        const response = await fetch('/api/config/string-config/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                test_string: testString,
+                patterns: currentConfig.regex_patterns
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            displayTestResults(result.results);
+        } else {
+            resultsDiv.innerHTML = `<div class="alert alert-error">Test failed: ${result.error}</div>`;
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `<div class="alert alert-error">Test failed: ${error.message}</div>`;
+    }
+}
+
+function displayTestResults(results) {
+    const resultsDiv = document.getElementById('test-results');
+    let html = '<h4>Test Results:</h4>';
+    
+    for (const [patternName, result] of Object.entries(results)) {
+        const config = currentConfig.regex_patterns[patternName];
+        if (!config || !config.enabled) continue;
+        
+        html += `<div class="test-result">`;
+        html += `<div><strong>${patternName}</strong> <small class="text-secondary">(${config.category})</small></div>`;
+        
+        if (result.valid) {
+            if (result.matches.length > 0) {
+                html += `<div class="mt-2"><strong>Matches (${result.count}):</strong></div>`;
+                html += '<div>';
+                result.matches.forEach(match => {
+                    html += `<span class="test-match">${escapeHtml(match)}</span>`;
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="text-secondary mt-1">No matches found</div>';
+            }
+        } else {
+            html += `<div class="validation-error">Invalid regex: ${result.error}</div>`;
+        }
+        
+        html += '</div>';
+    }
+    
+    resultsDiv.innerHTML = html;
+}
+
+function testPatterns() {
+    showTab('test');
+}
+
+function backupConfiguration() {
+    // UPDATED PATH: Changed from /api/string-config/backup to /api/config/string-config/backup
+    window.location.href = '/api/config/string-config/backup';
+}
+
+function importConfiguration() {
+    document.getElementById('import-file').click();
+}
+
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedConfig = JSON.parse(e.target.result);
+            
+            if (confirm('Import this configuration? This will replace current settings.')) {
+                currentConfig = importedConfig;
+                unsavedChanges = true;
+                displayConfiguration();
+                showNotification('Configuration imported successfully', 'success');
+            }
+        } catch (error) {
+            showNotification('Error importing configuration: Invalid JSON file', 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '10000';
+    notification.style.maxWidth = '400px';
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,12 @@
+# YARA Service Dependencies
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# YARA Python bindings
+yara-python==4.5.1
+
+# File type detection
+python-magic==0.4.27
+
+# For error handling and logging
+python-dateutil==2.8.2

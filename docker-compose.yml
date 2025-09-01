@@ -1,0 +1,134 @@
+services:
+  # ClamAV container
+  clamav-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.clamav
+    volumes:
+      - shared-files:/app/shared-files:rw,nosuid,nodev
+      - clamav-db:/var/lib/clamav:rw,nosuid,nodev
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    networks:
+      - malware-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    expose:
+      - "5000"
+    security_opt:
+      - apparmor:unconfined
+    userns_mode: "host"
+
+  # YARA container
+  yara-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.yara
+    volumes:
+      - ./rules:/app/rules:ro,nosuid,nodev
+      - shared-files:/app/shared-files:rw,nosuid,nodev
+      - yara-logs:/app/logs:rw,nosuid,nodev
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    networks:
+      - malware-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 180s  # YARA needs more time for rule compilation
+    deploy:
+      resources:
+        limits:
+          memory: 3G  # YARA rule compilation can be memory intensive
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    expose:
+      - "5001"
+    security_opt:
+      - apparmor:unconfined
+    userns_mode: "host"
+
+
+  # Orchestrator
+  orchestrator:
+    build: 
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    depends_on:
+      clamav-scanner:
+        condition: service_healthy
+      yara-scanner:
+        condition: service_healthy
+    ports:
+      - "8080:8080" 
+    volumes:
+      - ./uploads:/app/uploads:rw,nosuid,nodev
+      - ./reports:/app/reports:rw,nosuid,nodev
+      - ./data:/app/data:rw,nosuid,nodev
+      - ./logs:/app/logs:rw,nosuid,nodev
+      - ./templates:/app/templates:rw,nosuid,nodev
+      - shared-files:/app/shared-files:rw,nosuid,nodev
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY}
+      - HYBRID_ANALYSIS_API_KEY=${HYBRID_ANALYSIS_API_KEY}
+      - METADEFENDER_API_KEY=${METADEFENDER_API_KEY}
+      - CLAMAV_URL=http://clamav-scanner:5000
+      - YARA_URL=http://yara-scanner:5001
+    networks:
+      - malware-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    env_file:
+      - .env
+    security_opt:
+      - apparmor:unconfined
+    userns_mode: "host"
+
+
+volumes:
+  shared-files:
+    driver: local
+  clamav-db:
+    driver: local
+  yara-logs:
+    driver: local
+
+networks:
+  malware-analysis:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.driver.mtu: "1500"

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>🛡️ Multi-Engine Antivirus Management</h2>
+    <div class="btn-group">
+        <button onclick="window.location.href='/containers'" class="btn">Check Container Health</button>
+        <button onclick="window.location.href='/'" class="btn">Back to Analysis</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="padding: 10px; border-radius: 4px; margin: 10px 0;">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Container Health Status -->
+<div style="border: 1px solid #007bff; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">📦 Container Services Status</h3>
+    <div id="container-health" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+        <div style="text-align: center; padding: 20px;">
+            <div>Click "Check Container Health" to view status</div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Form -->
+<div style="border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">⚙️ Engine Configuration</h3>
+    <form action="/av/configure" method="post">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            
+            <!-- Container Engines Section -->
+            <div style="grid-column: 1 / -1; border: 2px solid #007bff; border-radius: 8px; padding: 15px;">
+                <h4 style="margin-top: 0;">📦 Container-Based Engines</h4>
+                
+                <!-- ClamAV Container -->
+                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin: 10px 0;">
+                    <h5 style="margin-top: 0; display: flex; align-items: center;">
+                        <input type="checkbox" name="clamav_enabled" id="clamav_enabled" 
+                               {% if config.enabled_engines.clamav %}checked{% endif %}
+                               style="margin-right: 8px;">
+                        <label for="clamav_enabled">ClamAV (Container)</label>
+                    </h5>
+                    <div>
+                        <p style="margin: 5px 0;">Running in dedicated Docker container - no local installation required</p>
+                        <small>Features: Fast scanning, automatic signature updates, isolated execution</small>
+                        <div style="margin-top: 10px;">
+                            <span class="badge badge-info">Container</span>
+                            <span class="badge badge-success">Unlimited scans</span>
+                            <span class="badge badge-secondary">Offline operation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Remote API Engines Section -->
+            <div style="grid-column: 1 / -1; border: 2px solid #28a745; border-radius: 8px; padding: 15px; ">
+                <h4 style="margin-top: 0; ">🌐 Remote API Engines</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                    <!-- VirusTotal -->
+                    <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px; ">
+                        <h5 style="margin-top: 0; display: flex; align-items: center;">
+                            <input type="checkbox" name="virustotal_enabled" id="virustotal_enabled" 
+                                   {% if config.enabled_engines.virustotal %}checked{% endif %}
+                                   style="margin-right: 8px;">
+                            <label for="virustotal_enabled">VirusTotal</label>
+                        </h5>
+                        <div>
+                            <label for="virustotal_api_key"><strong>API Key:</strong></label><br>
+                            <input type="password" name="virustotal_api_key" id="virustotal_api_key" 
+                                   value="{{ config.virustotal_api_key or '' }}"
+                                   placeholder="Enter VirusTotal API key..."
+                                   style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small>Free: 4 requests/min, 500/day</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Hybrid Analysis -->
+                    <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px;">
+                        <h5 style="margin-top: 0; display: flex; align-items: center;">
+                            <input type="checkbox" name="hybrid_analysis_enabled" id="hybrid_analysis_enabled"
+                                   {% if config.enabled_engines.hybrid_analysis %}checked{% endif %}
+                                   style="margin-right: 8px;">
+                            <label for="hybrid_analysis_enabled">Hybrid Analysis</label>
+                        </h5>
+                        <div>
+                            <label for="hybrid_analysis_api_key"><strong>API Key:</strong></label><br>
+                            <input type="password" name="hybrid_analysis_api_key" id="hybrid_analysis_api_key"
+                                   value="{{ config.hybrid_analysis_api_key or '' }}"
+                                   placeholder="Enter Hybrid Analysis API key..."
+                                   style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small>Free: 50 requests/day</small>
+                        </div>
+                    </div>
+                    
+                    <!-- MetaDefender -->
+                    <div style="border: 1px solid #ddd; border-radius: 4px; padding: 15px;">
+                        <h5 style="margin-top: 0; display: flex; align-items: center;">
+                            <input type="checkbox" name="metadefender_enabled" id="metadefender_enabled"
+                                   {% if config.enabled_engines.metadefender %}checked{% endif %}
+                                   style="margin-right: 8px;">
+                            <label for="metadefender_enabled">MetaDefender</label>
+                        </h5>
+                        <div>
+                            <label for="metadefender_api_key"><strong>API Key:</strong></label><br>
+                            <input type="password" name="metadefender_api_key" id="metadefender_api_key"
+                                   value="{{ config.metadefender_api_key or '' }}"
+                                   placeholder="Enter MetaDefender API key..."
+                                   style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small>Free: 10 requests/day</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="submit" class="btn" style="padding: 12px 30px; font-size: 16px;">
+                💾 Save Configuration
+            </button>
+        </div>
+    </form>
+</div>
+
+<h3>📊 Engine Status</h3>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin: 20px 0;">
+    {% for engine_id, engine in engines.items() %}
+    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; {% if engine.type == 'container' %}{% endif %}">
+        <h4 style="margin-top: 0; display: flex; align-items: center;">
+            {% if engine.available and engine.enabled %}
+                <span style="; margin-right: 8px;">●</span>
+            {% elif engine.available %}
+                <span style="; margin-right: 8px;">●</span>
+            {% else %}
+                <span style="; margin-right: 8px;">●</span>
+            {% endif %}
+            {{ engine.name }}
+            {% if engine.type == 'container' %}
+                <span style="padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">CONTAINER</span>
+            {% elif engine.type == 'api' %}
+                <span style=" padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">API</span>
+            {% else %}
+                <span style="padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">LOCAL</span>
+            {% endif %}
+        </h4>
+        
+        <p><strong>Status:</strong> 
+            {% if engine.available and engine.enabled %}
+                <span style=";">Active ✓</span>
+            {% elif engine.available and not engine.enabled %}
+                <span style="color: #ffc107;">Available but Disabled</span>
+            {% elif not engine.available and engine.enabled %}
+                <span style="color: #dc3545;">Enabled but Not Available</span>
+            {% else %}
+                <span style="color: #6c757d;">Disabled</span>
+            {% endif %}
+        </p>
+        
+        <p><strong>Version:</strong> {{ engine.version }}</p>
+        
+        {% if engine.type == 'api' %}
+        <p><strong>API Key:</strong> 
+            {% if engine.api_configured %}
+                <span style="color: #28a745;">Configured ✓</span>
+            {% else %}
+                <span style="color: #dc3545;">Not configured</span>
+            {% endif %}
+        </p>
+        {% endif %}
+        
+        {% if engine.type == 'container' and engine.available %}
+        <form action="/av/update" method="post" style="margin-top: 15px;">
+            <input type="hidden" name="engine" value="{{ engine_id }}">
+            <button type="submit" class="btn btn-primary">🔄 Update Signatures</button>
+        </form>
+        {% endif %}
+        
+        {% if engine.type == 'container' and not engine.available %}
+        <div style="margin-top: 15px; padding: 10px; border: 1px solid #ffeaa7; border-radius: 4px; font-size: 14px;">
+            <strong>⚠️ Container Unavailable:</strong><br>
+            1. Check if Docker container is running<br>
+            2. Verify network connectivity<br>
+            3. Check container logs for errors
+        </div>
+        {% endif %}
+        
+        {% if engine.type == 'api' and not engine.api_configured %}
+        <div style="margin-top: 15px; padding: 10px; border: 1px solid #bee5eb; border-radius: 4px; font-size: 14px;">
+            <strong>Setup Instructions:</strong><br>
+            {% if engine_id == 'virustotal' %}
+                1. Get free API key from <a href="https://www.virustotal.com" target="_blank">VirusTotal</a><br>
+                2. Enter API key in configuration form above
+            {% elif engine_id == 'hybrid_analysis' %}
+                1. Get free API key from <a href="https://hybrid-analysis.com" target="_blank">Hybrid Analysis</a><br>
+                2. Enter API key in configuration form above
+            {% elif engine_id == 'metadefender' %}
+                1. Get free API key from <a href="https://metadefender.opswat.com" target="_blank">MetaDefender</a><br>
+                2. Enter API key in configuration form above
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Architecture Information -->
+<div style=" border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">🏗️ Microservices Architecture</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+        <div>
+            <strong>📦 Container Benefits:</strong><br>
+            <small>• Isolated execution environments<br>
+            • Independent scaling and updates<br>
+            • Better resource management<br>
+            • Easy addition of new engines</small>
+        </div>
+        <div>
+            <strong>🔧 Current Architecture:</strong><br>
+            <small>• Main orchestrator (this app)<br>
+            • ClamAV container service<br>
+            • Remote API integrations<br>
+            • Shared file storage</small>
+        </div>
+        <div>
+            <strong>🚀 Future Expansion:</strong><br>
+            <small>• Windows Defender container<br>
+            • ESET NOD32 container<br>
+            • Custom ML-based scanners<br>
+            • Real-time monitoring</small>
+        </div>
+    </div>
+</div>
+
+<script>
+async function checkContainerHealth() {
+    const container = document.getElementById('container-health');
+    container.innerHTML = '<div style="text-align: center; padding: 20px;">🔍 Checking container health...</div>';
+    
+    try {
+        const response = await fetch('/api/containers/health');
+        const data = await response.json();
+        
+        if (data.success) {
+            let html = '';
+            
+            for (const [containerId, health] of Object.entries(data.containers)) {
+                const statusColor = health.available ? '#28a745' : '#dc3545';
+                const statusIcon = health.available ? '✅' : '❌';
+                
+                html += `
+                    <div style="border: 1px solid ${statusColor}; border-radius: 8px; padding: 15px;">
+                        <h4 style="margin-top: 0; color: ${statusColor};">
+                            ${statusIcon} ${containerId.toUpperCase()}
+                        </h4>
+                        <p><strong>Status:</strong> ${health.status}</p>
+                        <p><strong>Version:</strong> ${health.version || 'Unknown'}</p>
+                        ${health.error ? `<p><strong>Error:</strong> ${health.error}</p>` : ''}
+                        <small>Last checked: ${new Date(data.timestamp).toLocaleString()}</small>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<div text-align: center; padding: 20px;">❌ Error: ${data.error}</div>`;
+        }
+    } catch (error) {
+        container.innerHTML = `<div style="text-align: center; padding: 20px;">❌ Error checking health: ${error.message}</div>`;
+    }
+}
+
+// Auto-check container health on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkContainerHealth();
+});
+</script>
+
+{% endblock %}

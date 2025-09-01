@@ -1,0 +1,756 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>📊 Analysis Reports</h2>
+    <a href="/" class="btn">Back to Analysis</a>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="padding: 10px; border-radius: 4px; margin: 10px 0;">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Report Generation -->
+<div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">🗃️ Generate New Report</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 15px 0;">
+
+        <!-- Summary Report -->
+        <div style="border: 1px solid #007bff; border-radius: 8px; padding: 15px;">
+            <h4 style="margin-top: 0;">📈 Summary Report</h4>
+            <p style="font-size: 14px;">High-level overview with statistics, file type distribution, and threat summaries.</p>
+            <button onclick="generateReport('summary')" class="btn" style="width: 100%;">
+                Generate Summary
+            </button>
+        </div>
+        
+        <!-- Detailed Report -->
+        <div style="border: 1px solid #28a745; border-radius: 8px; padding: 15px; ">
+            <h4 style="margin-top: 0;">📋 Detailed Report</h4>
+            <p style="font-size: 14px;">Complete analysis data for each file including YARA matches, AV results, and strings.</p>
+            <button onclick="generateReport('detailed')" class="btn" style="width: 100%;">
+                Generate Detailed
+            </button>
+        </div>
+        
+        <!-- Threats Report -->
+        <div style="border: 1px solid #dc3545; border-radius: 8px; padding: 15px;">
+            <h4 style="margin-top: 0;">🚨 Threats Report</h4>
+            <p style="font-size: 14px;">Focus on infected files, threat analysis, and security indicators.</p>
+            <button onclick="generateReport('threats')" class="btn" style="width: 100%;">
+                Generate Threats
+            </button>
+        </div>
+    </div>
+    
+    <!-- File Selection -->
+    <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 15px;">
+        <h4>🔍 File Selection</h4>
+        <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 15px; align-items: center;">
+            <div>
+                <label><input type="radio" name="file_selection" value="all" checked> Include all files</label><br>
+                <label><input type="radio" name="file_selection" value="selected"> Include only selected files</label><br>
+                <label><input type="radio" name="file_selection" value="date_range"> Include files by date range</label>
+            </div>
+            <div>
+                <button onclick="showFileSelector()" class="btn" >
+                    📋 Select Files (<span id="selected-count">0</span>)
+                </button>
+            </div>
+            <div>
+                <button onclick="showFileManager()" class="btn">
+                    🗂️ Manage Files
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Date Range Filter -->
+    <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 15px; display: none;" id="date-range-section">
+        <h4>📅 Date Range Filter</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+            <div>
+                <label for="date_from"><strong>From:</strong></label><br>
+                <input type="datetime-local" id="date_from" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <label for="date_to"><strong>To:</strong></label><br>
+                <input type="datetime-local" id="date_to" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <button onclick="clearDateFilter()" class="btn">Clear Filter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loading" style="display: none; text-align: center; padding: 30px; border-radius: 8px; margin: 20px 0;">
+    <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p style="margin: 15px 0 0 0;">Generating report... This may take a few moments.</p>
+</div>
+
+<!-- Generated Report Display -->
+<div id="report-display" style="display: none;">
+    <h3>📄 Generated Report</h3>
+    <div id="report-content" style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 10px 0;">
+        <!-- Report content will be inserted here -->
+    </div>
+    <div style="text-align: center; margin: 15px 0;">
+        <button id="download-btn" class="btn">💾 Download Report</button>
+        <button onclick="hideReport()" class="btn" style="margin-left: 10px;">✖ Close</button>
+    </div>
+</div>
+
+<!-- Available Reports -->
+<div style="margin-top: 30px;">
+    <h3>📁 Available Reports</h3>
+    <div id="reports-list" style="border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+        <p style="text-align: center;">Loading available reports...</p>
+    </div>
+</div>
+
+<!-- File Selector Modal -->
+<div id="file-selector-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;z-index: 1000;">
+    <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; max-height: 80%; overflow-y: auto; background: #1e164d">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>📋 Select Files for Report</h3>
+            <button onclick="closeFileSelector()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <button onclick="selectAllFiles()" class="btn" style="margin-right: 10px;">Select All</button>
+            <button onclick="clearAllFiles()" class="btn" style="margin-right: 10px;">Clear All</button>
+            <button onclick="selectThreatFiles()" class="btn" >Select Threat Files Only</button>
+        </div>
+        
+        <div id="file-list-selector" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+            <!-- File list will be loaded here -->
+        </div>
+        
+        <div style="text-align: center; margin-top: 15px;">
+            <button onclick="confirmFileSelection()" class="btn" style="padding: 10px 20px;">
+                Confirm Selection (<span id="selection-count">0</span> files)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- File Manager Modal -->
+<div id="file-manager-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;">
+    <div style="margin: 50px auto; padding: 20px; width: 90%; max-width: 1200px; border-radius: 8px; max-height: 80%; overflow-y: auto; background: #1e164d;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>🗂️ File Manager</h3>
+            <button onclick="closeFileManager()" style="border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="file-search" placeholder="Search files..." style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+            <button onclick="loadFileManager()" class="btn">🔄 Refresh</button>
+        </div>
+        
+        <div id="file-manager-list" style="max-height: 500px; overflow-y: auto;">
+            <!-- File manager list will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+let currentReportData = null;
+let selectedFileIds = [];
+let allFiles = [];
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableReports();
+    
+    // Set default date range (last 30 days)
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('date_to').value = now.toISOString().slice(0, 16);
+    document.getElementById('date_from').value = thirtyDaysAgo.toISOString().slice(0, 16);
+    
+    // Add radio button listeners
+    document.querySelectorAll('input[name="file_selection"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'date_range') {
+                document.getElementById('date-range-section').style.display = 'block';
+            } else {
+                document.getElementById('date-range-section').style.display = 'none';
+            }
+        });
+    });
+    
+    // Load files for selection
+    loadAllFiles();
+});
+
+async function loadAllFiles() {
+    try {
+        const response = await fetch('/api/files/list');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        allFiles = await response.json();
+        updateSelectedCount();
+    } catch (error) {
+        console.error('Error loading files:', error);
+        allFiles = [];
+    }
+}
+
+function updateSelectedCount() {
+    document.getElementById('selected-count').textContent = selectedFileIds.length;
+    const selectionCount = document.getElementById('selection-count');
+    if (selectionCount) {
+        selectionCount.textContent = selectedFileIds.length;
+    }
+}
+
+async function generateReport(type) {
+    // Show loading indicator
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('report-display').style.display = 'none';
+    
+    try {
+        const selectionType = document.querySelector('input[name="file_selection"]:checked').value;
+        let requestData = { type: type };
+        
+        if (selectionType === 'selected') {
+            if (selectedFileIds.length === 0) {
+                alert('Please select at least one file for the report.');
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            requestData.file_ids = selectedFileIds;
+        } else if (selectionType === 'date_range') {
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
+            if (dateFrom) requestData.date_from = dateFrom;
+            if (dateTo) requestData.date_to = dateTo;
+        }
+        
+        console.log('Generating report with data:', requestData);
+        
+        const response = await fetch('/api/reports/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            currentReportData = result;
+            displayReport(result.report, type);
+            loadAvailableReports(); // Refresh the list
+        } else {
+            throw new Error(result.error || 'Unknown error occurred');
+        }
+        
+    } catch (error) {
+        console.error('Report generation error:', error);
+        alert('Error generating report: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function showFileSelector() {
+    loadFileSelector();
+    document.getElementById('file-selector-modal').style.display = 'block';
+}
+
+function closeFileSelector() {
+    document.getElementById('file-selector-modal').style.display = 'none';
+}
+
+function showFileManager() {
+    loadFileManager();
+    document.getElementById('file-manager-modal').style.display = 'block';
+}
+
+function closeFileManager() {
+    document.getElementById('file-manager-modal').style.display = 'none';
+}
+
+async function loadFileSelector() {
+    const container = document.getElementById('file-list-selector');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">Loading files...</p>';
+    
+    try {
+        if (allFiles.length === 0) {
+            await loadAllFiles();
+        }
+        
+        if (allFiles.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No files found.</p>';
+            return;
+        }
+        
+        let html = '';
+        allFiles.forEach(file => {
+            const isSelected = selectedFileIds.includes(file.id);
+            const threatColor = file.threat_level === 'High' ? '#dc3545' : 
+                              file.threat_level === 'Medium' ? '#ffc107' : '#28a745';
+            
+            html += `
+                <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center;">
+                    <input type="checkbox" id="file-${file.id}" ${isSelected ? 'checked' : ''} 
+                           onchange="toggleFileSelection(${file.id})" style="margin-right: 10px;">
+                    <div style="flex: 1;">
+                        <strong>${escapeHtml(file.filename)}</strong>
+                        <span style="background: ${threatColor}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">
+                            ${file.threat_level}
+                        </span><br>
+                        <small style="color: #666;">
+                            ${escapeHtml(file.file_type || 'Unknown')} | ${file.size} bytes | 
+                            YARA: ${file.yara_matches} | AV: ${file.av_detections} | 
+                            Uploaded: ${new Date(file.upload_time).toLocaleDateString()}
+                        </small><br>
+                        <small style="color: #999; font-family: monospace;">${file.sha256_short}</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        updateSelectedCount();
+        
+    } catch (error) {
+        console.error('Error loading file selector:', error);
+        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading files: ' + error.message + '</p>';
+    }
+}
+
+function toggleFileSelection(fileId) {
+    const index = selectedFileIds.indexOf(fileId);
+    if (index > -1) {
+        selectedFileIds.splice(index, 1);
+    } else {
+        selectedFileIds.push(fileId);
+    }
+    updateSelectedCount();
+}
+
+function selectAllFiles() {
+    selectedFileIds = allFiles.map(f => f.id);
+    loadFileSelector(); // Refresh to show checked boxes
+}
+
+function clearAllFiles() {
+    selectedFileIds = [];
+    loadFileSelector(); // Refresh to show unchecked boxes
+}
+
+function selectThreatFiles() {
+    selectedFileIds = allFiles.filter(f => f.threat_level === 'High' || f.av_detections > 0).map(f => f.id);
+    loadFileSelector(); // Refresh to show selected threat files
+}
+
+function confirmFileSelection() {
+    updateSelectedCount();
+    closeFileSelector();
+    alert(`Selected ${selectedFileIds.length} files for report generation.`);
+}
+
+async function loadFileManager() {
+    const container = document.getElementById('file-manager-list');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">Loading files...</p>';
+    
+    try {
+        await loadAllFiles(); // Refresh file list
+        
+        if (allFiles.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No files found.</p>';
+            return;
+        }
+        
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += `
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">File</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Threat Level</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Detections</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Size</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Uploaded</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        allFiles.forEach(file => {
+            const threatColor = file.threat_level === 'High' ? '#dc3545' : 
+                              file.threat_level === 'Medium' ? '#ffc107' : '#28a745';
+            const uploaded = new Date(file.upload_time).toLocaleDateString();
+            
+            html += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">
+                        <strong>${escapeHtml(file.filename)}</strong><br>
+                        <small style="color: #666;">${escapeHtml(file.file_type || 'Unknown')}</small><br>
+                        <small style="color: #999; font-family: monospace;">${file.sha256_short}</small>
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        <span style="background: ${threatColor}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px;">
+                            ${file.threat_level}
+                        </span>
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        YARA: ${file.yara_matches}<br>
+                        AV: ${file.av_detections}
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        ${Math.round(file.size / 1024)} KB
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        ${uploaded}
+                    </td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
+                        <button onclick="viewFileDetails(${file.id})" class="btn" style="background: #17a2b8; padding: 4px 8px; font-size: 12px; margin: 2px;">
+                            👁️ View
+                        </button><br>
+                        <button onclick="deleteFile(${file.id}, '${escapeHtml(file.filename)}')" class="btn" style="background: #dc3545; padding: 4px 8px; font-size: 12px; margin: 2px;">
+                            🗑️ Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading file manager:', error);
+        container.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Error loading files: ' + error.message + '</p>';
+    }
+}
+
+function viewFileDetails(fileId) {
+    window.open(`/results/${fileId}`, '_blank');
+}
+
+async function deleteFile(fileId, filename) {
+    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/files/delete/${fileId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`File "${filename}" deleted successfully.`);
+            // Remove from selected files if it was selected
+            const index = selectedFileIds.indexOf(fileId);
+            if (index > -1) {
+                selectedFileIds.splice(index, 1);
+                updateSelectedCount();
+            }
+            // Reload file manager
+            loadFileManager();
+            loadAllFiles(); // Refresh the main file list
+        } else {
+            throw new Error(result.error || 'Delete failed');
+        }
+        
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Error deleting file: ' + error.message);
+    }
+}
+
+function displayReport(report, type) {
+    const content = document.getElementById('report-content');
+    
+    if (type === 'summary') {
+        content.innerHTML = generateSummaryHTML(report);
+    } else if (type === 'detailed') {
+        content.innerHTML = generateDetailedHTML(report);
+    } else if (type === 'threats') {
+        content.innerHTML = generateThreatsHTML(report);
+    }
+    
+    // Update download button
+    const downloadBtn = document.getElementById('download-btn');
+    downloadBtn.onclick = () => downloadReport();
+    
+    document.getElementById('report-display').style.display = 'block';
+    
+    // Scroll to report
+    document.getElementById('report-display').scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateSummaryHTML(report) {
+    const summary = report.summary;
+    
+    let html = `
+        <h4>${report.report_type}</h4>
+        <p><strong>Generated:</strong> ${new Date(report.generated_at).toLocaleString()}</p>
+        
+        <div class="report-summary">
+            <div class="stat-card">
+                <div class="stat-number">${summary.total_files_analyzed}</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: #dc3545;">${summary.infected_files}</div>
+                <div class="stat-label">Infected Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: #28a745;">${summary.clean_files}</div>
+                <div class="stat-label">Clean Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${summary.infection_rate}%</div>
+                <div class="stat-label">Infection Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${summary.total_yara_matches}</div>
+                <div class="stat-label">YARA Matches</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${summary.total_strings_extracted}</div>
+                <div class="stat-label">Strings Extracted</div>
+            </div>
+        </div>
+    `;
+    
+    // File Types
+    if (report.file_types && Object.keys(report.file_types).length > 0) {
+        html += '<h5>📁 File Type Distribution</h5>';
+        html += '<div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">';
+        for (const [type, count] of Object.entries(report.file_types)) {
+            html += `<span style="display: inline-block; margin: 3px; padding: 5px 10px; background: #007bff; color: white; border-radius: 3px; font-size: 12px;">${escapeHtml(type)}: ${count}</span>`;
+        }
+        html += '</div>';
+    }
+    
+    // Top Threats
+    if (report.top_threats && report.top_threats.length > 0) {
+        html += '<h5>🚨 Top Threats</h5>';
+        html += '<div>';
+        report.top_threats.slice(0, 10).forEach(threat => {
+            html += `<div class="threat-item"><strong>${escapeHtml(threat.threat)}</strong> <span style="float: right; color: #666;">${threat.count} occurrences</span></div>`;
+        });
+        html += '</div>';
+    }
+    
+    return html;
+}
+
+function generateDetailedHTML(report) {
+    let html = `
+        <h4>${report.report_type}</h4>
+        <p><strong>Generated:</strong> ${new Date(report.generated_at).toLocaleString()}</p>
+        <p><strong>Files Analyzed:</strong> ${report.files.length}</p>
+    `;
+    
+    if (report.files.length > 0) {
+        html += '<h5>📋 File Details</h5>';
+        html += '<div style="max-height: 600px; overflow-y: auto;">';
+        
+        report.files.forEach(file => {
+            const riskLevel = (file.yara_matches.length > 0 || file.av_results.some(av => av.status === 'infected')) ? 'High' : 'Low';
+            const riskColor = riskLevel === 'High' ? '#dc3545' : '#28a745';
+            
+            html += `
+                <div class="file-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h6 style="margin: 0;">${escapeHtml(file.filename)}</h6>
+                        <span style="background: ${riskColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px;">${riskLevel} Risk</span>
+                    </div>
+                    <p style="margin: 5px 0; font-size: 12px; color: #666;">SHA256: ${file.sha256}</p>
+                    <p style="margin: 5px 0; font-size: 12px;">Type: ${escapeHtml(file.file_type)} | Size: ${file.size} bytes</p>
+                    
+                    ${file.yara_matches.length > 0 ? `
+                        <p style="margin: 5px 0;"><strong>YARA Matches:</strong> ${file.yara_matches.map(y => escapeHtml(y.rule)).join(', ')}</p>
+                    ` : ''}
+                    
+                    ${file.av_results.filter(av => av.status === 'infected').length > 0 ? `
+                        <p style="margin: 5px 0;"><strong>Threats:</strong> ${file.av_results.filter(av => av.status === 'infected').map(av => escapeHtml(av.threat)).filter(t => t).join(', ')}</p>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+    }
+    
+    return html;
+}
+
+function generateThreatsHTML(report) {
+    let html = `
+        <h4>${report.report_type}</h4>
+        <p><strong>Generated:</strong> ${new Date(report.generated_at).toLocaleString()}</p>
+        
+        <div class="report-summary">
+            <div class="stat-card">
+                <div class="stat-number" style="color: #dc3545;">${report.summary.total_threat_files}</div>
+                <div class="stat-label">Threat Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${report.summary.unique_threats}</div>
+                <div class="stat-label">Unique Threats</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${report.summary.highest_risk_files}</div>
+                <div class="stat-label">High Risk Files</div>
+            </div>
+        </div>
+    `;
+    
+    // Threat Statistics
+    if (report.threat_statistics && report.threat_statistics.length > 0) {
+        html += '<h5>📊 Threat Statistics</h5>';
+        html += '<div style="max-height: 200px; overflow-y: auto;">';
+        report.threat_statistics.forEach(threat => {
+            html += `<div class="threat-item"><strong>${escapeHtml(threat.threat)}</strong> <span style="float: right; color: #666;">${threat.occurrences} files</span></div>`;
+        });
+        html += '</div>';
+    }
+    
+    // Detailed Threat Analysis
+    if (report.threat_analysis && report.threat_analysis.length > 0) {
+        html += '<h5>🔍 Detailed Threat Analysis</h5>';
+        html += '<div style="max-height: 500px; overflow-y: auto;">';
+        
+        report.threat_analysis.forEach(analysis => {
+            const levelColor = analysis.threat_level === 'High' ? '#dc3545' : analysis.threat_level === 'Medium' ? '#ffc107' : '#28a745';
+            
+            html += `
+                <div class="file-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h6 style="margin: 0;">${escapeHtml(analysis.filename)}</h6>
+                        <span style="background: ${levelColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px;">${analysis.threat_level}</span>
+                    </div>
+                    <p style="margin: 5px 0; font-size: 12px; color: #666;">SHA256: ${analysis.sha256}</p>
+                    
+                    ${analysis.av_threats.length > 0 ? `
+                        <p style="margin: 5px 0;"><strong>AV Detections:</strong> ${analysis.av_threats.map(t => `${escapeHtml(t.engine)}: ${escapeHtml(t.threat)}`).join(', ')}</p>
+                    ` : ''}
+                    
+                    ${analysis.yara_rules.length > 0 ? `
+                        <p style="margin: 5px 0;"><strong>YARA Rules:</strong> ${analysis.yara_rules.map(r => escapeHtml(r.rule)).join(', ')}</p>
+                    ` : ''}
+                    
+                    ${analysis.suspicious_indicators.length > 0 ? `
+                        <p style="margin: 5px 0;"><strong>Indicators:</strong> ${analysis.suspicious_indicators.slice(0, 5).map(i => escapeHtml(i.value)).join(', ')}</p>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+    }
+    
+    return html;
+}
+
+function downloadReport() {
+    if (currentReportData && currentReportData.download_url) {
+        window.location.href = currentReportData.download_url;
+    } else {
+        alert('No report available for download.');
+    }
+}
+
+function hideReport() {
+    document.getElementById('report-display').style.display = 'none';
+}
+
+function clearDateFilter() {
+    document.getElementById('date_from').value = '';
+    document.getElementById('date_to').value = '';
+}
+
+async function loadAvailableReports() {
+    try {
+        const response = await fetch('/api/reports/list');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const reports = await response.json();
+        
+        const container = document.getElementById('reports-list');
+        
+        if (reports.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #666;">No reports generated yet.</p>';
+            return;
+        }
+        
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background: #f8f9fa;"><th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Report</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Size</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Created</th><th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Actions</th></tr></thead>';
+        html += '<tbody>';
+        
+        reports.forEach(report => {
+            const sizeKB = Math.round(report.size / 1024);
+            const created = new Date(report.created).toLocaleString();
+            
+            html += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${escapeHtml(report.filename)}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${sizeKB} KB</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${created}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">
+                        <a href="${report.download_url}" class="btn" style="background: #17a2b8; padding: 5px 10px; font-size: 12px;">💾 Download</a>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading reports:', error);
+        document.getElementById('reports-list').innerHTML = '<p style="color: red;">Error loading reports: ' + error.message + '</p>';
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Close modals when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target === document.getElementById('file-selector-modal')) {
+        closeFileSelector();
+    }
+    if (e.target === document.getElementById('file-manager-modal')) {
+        closeFileManager();
+    }
+});
+</script>
+
+{% endblock %}
