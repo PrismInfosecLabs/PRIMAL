@@ -106,6 +106,7 @@ h4, h5, h6 {
 
 p {
     margin-bottom: 15px;
+    color: var(--text-secondary);
 }
 
 /* Links */
@@ -120,6 +121,158 @@ a:hover {
     text-shadow: var(--glow-cyan);
 }
 
+/* Logo */
+/* Complete Logo Implementation with All Effects - Add to your style.css */
+
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--border);
+    position: relative;
+}
+
+.logo-container {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px; /* Prevents layout shift */
+    position: relative;
+}
+
+.app-logo {
+    max-height: 80px;
+    max-width: 200px;
+    height: auto;
+    width: auto;
+    border-radius: 8px;
+    object-fit: contain;
+    object-position: center;
+    
+    /* Base glow effect */
+    filter: drop-shadow(0 0 10px rgba(2, 255, 224, 0.3));
+    
+    /* Smooth transitions for all effects */
+    transition: all 0.3s ease;
+    
+    /* Loading animation */
+    opacity: 0;
+    transform: scale(0.95);
+    animation: logoAppear 0.6s ease 0.1s forwards;
+    
+    /* Make it clickable */
+    cursor: pointer;
+}
+
+/* Loading animation */
+@keyframes logoAppear {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Enhanced hover effect with multiple glows */
+.app-logo:hover {
+    filter: 
+        drop-shadow(0 0 20px rgba(2, 255, 224, 0.6))
+        drop-shadow(0 0 40px rgba(2, 255, 224, 0.3));
+    transform: scale(1.05);
+}
+
+/* Active/click effect */
+.app-logo:active {
+    transform: scale(0.98);
+    filter: drop-shadow(0 0 15px rgba(2, 255, 224, 0.8));
+}
+
+/* Focus effect for accessibility */
+.app-logo:focus {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 4px;
+    filter: drop-shadow(0 0 15px rgba(2, 255, 224, 0.5));
+}
+
+/* Alternative: Pulsing glow effect (optional) */
+.app-logo.pulse-glow {
+    animation: logoAppear 0.6s ease 0.1s forwards, pulseGlow 2s ease-in-out infinite 1s;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { 
+        filter: drop-shadow(0 0 10px rgba(2, 255, 224, 0.3)); 
+    }
+    50% { 
+        filter: drop-shadow(0 0 20px rgba(2, 255, 224, 0.5)); 
+    }
+}
+
+/* Enhanced hover for pulsing version */
+.app-logo.pulse-glow:hover {
+    animation: none; /* Stop pulsing on hover */
+    filter: 
+        drop-shadow(0 0 25px rgba(2, 255, 224, 0.7))
+        drop-shadow(0 0 50px rgba(2, 255, 224, 0.4));
+    transform: scale(1.08);
+}
+
+/* Logo variants */
+.app-logo.large {
+    max-height: 120px;
+    max-width: 300px;
+}
+
+.app-logo.small {
+    max-height: 40px;
+    max-width: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .logo-container {
+        min-height: 60px;
+    }
+    
+    .app-logo {
+        max-height: 60px;
+        max-width: 150px;
+    }
+    
+    .app-logo:hover {
+        /* Slightly reduced effects on mobile for performance */
+        filter: drop-shadow(0 0 15px rgba(2, 255, 224, 0.5));
+        transform: scale(1.03);
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-container {
+        min-height: 50px;
+    }
+    
+    .app-logo {
+        max-height: 50px;
+        max-width: 120px;
+    }
+}
+
+/* Dark/Light theme support */
+@media (prefers-reduced-motion: reduce) {
+    .app-logo {
+        animation: none;
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .app-logo.pulse-glow {
+        animation: none;
+    }
+    
+    .app-logo:hover {
+        transform: none;
+    }
+}
 /* Buttons */
 .btn {
     background: linear-gradient(45deg, var(--accent-pink), var(--accent-cyan));
@@ -209,58 +362,19 @@ a:hover {
     border: 1px solid var(--border);
 }
 
-
-/* Hash Section Styling */
-.hash-section {
-    margin-bottom: 15px;
-}
-
-.hash-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-/* File Info Grid */
-.file-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin-bottom: 30px;
-}
-
-.file-details {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.hash-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-/* Update hash class to be full width */
+/* Hash Display */
 .hash {
     font-family: var(--font-mono);
     word-break: break-all;
     background: var(--primary-dark);
     padding: 8px 12px;
     border-radius: 6px;
-    display: block; /* Changed from inline-block to block */
+    display: inline-block;
     color: var(--accent-cyan);
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
     font-size: 0.9em;
-    width: 100%; /* Added for consistent width */
-    margin-top: 5px;
 }
 
-@media (max-width: 768px) {
-    .file-info-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-}
 /* Tables */
 table {
     border-collapse: collapse;

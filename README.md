@@ -1,4 +1,6 @@
-# 🔬 PRIMAL v1.0 - Personal Malware Analysis Lab
+# PRIMAL v1.0 - Personal Malware Analysis Lab
+
+![PRIMAL Logo](static/images/logo.png)
 
 **PR**ism  **I**nfosec **M**alware **A**nalysis **L**ab
 

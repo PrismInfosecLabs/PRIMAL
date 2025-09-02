@@ -4,11 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRIMAL - Prism Infosec Malware Analysis Lab</title>
+    
+    <!-- Preload logo for faster loading -->
+    <link rel="preload" href="{{ url_for('static', filename='images/logo.png') }}" as="image">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>&#128300; PRIMAL - Prism Infosec Malware Analysis Lab</h1>
+        <header class="app-header">
+            <div class="logo-container">
+                <!-- Standard version -->
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="PRIMAL Logo" 
+                     class="app-logo"
+                     onclick="window.location.href='{{ url_for('index') }}'">
+                
+                <!-- Alternative: Pulsing glow version (uncomment to use) -->
+                <!--
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="PRIMAL Logo" 
+                     class="app-logo pulse-glow"
+                     onclick="window.location.href='{{ url_for('index') }}'">
+                -->
+            </div>
+            <h1 class="app-title">PRIMAL - Prism Infosec Malware Analysis Lab</h1>
+        </header>
         {% block content %}{% endblock %}
     </div>
 </body>
