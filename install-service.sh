@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-SERVICE_NAME="malware-lab"
+SERVICE_NAME="PRIMAL"
 SERVICE_DESCRIPTION="PRIMAL Malware Analysis Lab"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
@@ -61,7 +61,7 @@ create_service_file() {
     cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=$SERVICE_DESCRIPTION
-Documentation=https://github.com/your-org/malware-lab
+Documentation=https://github.com/PrismInfosecLabs/PRIMAL
 After=docker.service
 Requires=docker.service
 StartLimitIntervalSec=0
