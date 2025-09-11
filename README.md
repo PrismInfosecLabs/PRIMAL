@@ -10,6 +10,7 @@ A comprehensive, containerized malware analysis platform built with a microservi
 ![Docker](https://img.shields.io/badge/docker-required-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Blog Post](https://prisminfosec.com/introducing-primal-the-prism-infosec-malware-analysis-lab/)
 
 ## ✨ Features
 
