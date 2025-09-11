@@ -4,13 +4,12 @@
 
 **PR**ism  **I**nfosec **M**alware **A**nalysis **L**ab
 
-A comprehensive, containerized malware analysis platform built with a microservices architecture for scalable, multi-engine static analysis.
+A comprehensive, containerized malware analysis platform built with a microservices architecture for scalable, multi-engine static analysis. Read our blog post about PRIMAL here: [Blog Post](https://prisminfosec.com/introducing-primal-the-prism-infosec-malware-analysis-lab/)
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-required-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Blog Post](https://prisminfosec.com/introducing-primal-the-prism-infosec-malware-analysis-lab/)
 
 ## ✨ Features
 
